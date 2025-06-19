@@ -1,3 +1,5 @@
+Part of the **Image Utils** suite by Shastho Limited ([MIT License](https://opensource.org/licenses/MIT)) – [GitHub Repository](https://github.com/shasthoAI/image-utils)
+
 # Compressor Service – Detailed Documentation
 
 A powerful multi-level image compression tool built with Node.js and Sharp. It dramatically reduces image file sizes while balancing quality and flexibility.
@@ -72,4 +74,13 @@ npm run compress:png
 * C/C++ build tools (for Sharp on some OSes)
 
 ## 8. License
-ISC
+
+This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+
+---
+
+### Connect with Shastho Limited
+
+[Website](https://shastho.ai) | [GitHub](https://github.com/shasthoAI) | [LinkedIn](https://www.linkedin.com/company/shastho) | [Twitter](https://twitter.com/shastho_ai) | [Facebook](https://www.facebook.com/shasthoAI/) | [Instagram](https://www.instagram.com/shastho_ai) | [YouTube](https://www.youtube.com/@shasthoai)
+
+This project is maintained by **Shastho Limited** and licensed under the **MIT License**.

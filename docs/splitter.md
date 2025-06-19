@@ -1,3 +1,5 @@
+Part of the **Image Utils** suite by Shastho Limited ([MIT License](https://opensource.org/licenses/MIT)) – [GitHub Repository](https://github.com/shasthoAI/image-utils)
+
 # Splitter Service – Detailed Documentation
 
 A flexible image **horizontal splitter** that divides large screenshots into equal-width slices. Supports per-run configuration via CLI flags or environment variables.
@@ -61,4 +63,15 @@ npm run split          # uses .env or defaults
 * Sharp native dependencies
 
 ## 6. License
-ISC
+
+This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+
+---
+
+### Connect with Shastho Limited
+
+[Website](https://shastho.ai) | [GitHub](https://github.com/shasthoAI) | [LinkedIn](https://www.linkedin.com/company/shastho) | [Twitter](https://twitter.com/shastho_ai) | [Facebook](https://www.facebook.com/shasthoAI/) | [Instagram](https://www.instagram.com/shastho_ai) | [YouTube](https://www.youtube.com/@shasthoai)
+
+This project is maintained by **Shastho Limited** and licensed under the **MIT License**.
+
+

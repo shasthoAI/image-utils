@@ -14,9 +14,13 @@
     "split": "node src/splitter.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "author": "Shastho Limited <https://github.com/shasthoAI>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shasthoAI/image-utils.git"
+  },
+  "license": "MIT",
+  "description": "A collection of lightweight Node.js utilities for common image processing tasks, including compression and splitting.",
   "dependencies": {
     "sharp": "^0.34.2",
     "dotenv": "^16.4.5"
