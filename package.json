@@ -1,0 +1,24 @@
+{
+  "name": "compressor",
+  "version": "1.0.0",
+  "main": "src/compressor.js",
+  "type": "module",
+  "scripts": {
+    "compress": "node src/compressor.js",
+    "compress:medium": "node src/compressor.js --medium",
+    "compress:high": "node src/compressor.js --high",
+    "compress:extreme": "node src/compressor.js --extreme",
+    "compress:png": "node src/compressor.js --png-optimized",
+    "compress:webp": "node src/compressor.js --webp",
+    "compress:png-extreme": "node src/compressor.js --png-optimized --extreme",
+    "split": "node src/splitter.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "sharp": "^0.34.2",
+    "dotenv": "^16.4.5"
+  }
+}
