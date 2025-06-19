@@ -14,6 +14,7 @@ Detailed documentation for each service can be found in the `docs/` directory.
 |-------------|-----------------------------------------------------------------------------|------------------------------------------------|
 | Compressor  | Optimizes images with multiple compression levels, WebP conversion, and more. | [docs/compressor.md](docs/compressor.md)       |
 | Splitter    | Slices large images or screenshots into a specified number of equal parts.  | [docs/splitter.md](docs/splitter.md)          |
+| PDF Splitter | Converts each page of a PDF into PNG/JPEG/TIFF images. | [docs/pdf_splitter.md](docs/pdf_splitter.md) |
 
 ## Getting Started
 

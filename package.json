@@ -11,7 +11,8 @@
     "compress:png": "node src/compressor.js --png-optimized",
     "compress:webp": "node src/compressor.js --webp",
     "compress:png-extreme": "node src/compressor.js --png-optimized --extreme",
-    "split": "node src/splitter.js"
+    "split": "node src/splitter.js",
+    "split:pdf": "node src/pdf_splitter.js"
   },
   "keywords": [],
   "author": "Shastho Limited <https://github.com/shasthoAI>",
@@ -23,6 +24,7 @@
   "description": "A collection of lightweight Node.js utilities for common image processing tasks, including compression and splitting.",
   "dependencies": {
     "sharp": "^0.34.2",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "node-poppler": "^8.0.1"
   }
 }
