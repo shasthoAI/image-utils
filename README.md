@@ -18,6 +18,8 @@ Detailed documentation for each service can be found in the `docs/` directory.
 
 ## Getting Started
 
+### Local Development
+
 1.  **Clone the repository:**
     ```bash
     git clone https://github.com/shasthoAI/image-utils.git
@@ -31,6 +33,67 @@ Detailed documentation for each service can be found in the `docs/` directory.
 
 3.  **Explore the services:**
     Refer to the documentation in the `docs/` folder for detailed usage instructions for each utility.
+
+### Global Installation (Recommended)
+
+To use the CLI tools from anywhere on your computer:
+
+1.  **Install globally:**
+    ```bash
+    npm install -g .
+    ```
+
+2.  **Use from any directory:**
+    ```bash
+    # Split a PDF in your current directory
+    pdf-split document.pdf
+    
+    # Compress images in current directory
+    image-compress ./photos --high
+    
+    # Split an image into parts
+    image-split screenshot.png --parts 4
+    ```
+
+## CLI Usage
+
+Once installed globally, you can use these commands from any folder:
+
+### Image Compression
+```bash
+image-compress [file/directory] [options]
+
+# Examples:
+image-compress photo.jpg --high              # Compress single file
+image-compress ./photos --webp               # Convert folder to WebP
+image-compress image.png --output ./out      # Compress to specific folder
+```
+
+### Image Splitting
+```bash
+image-split [file/directory] [options]
+
+# Examples:
+image-split screenshot.png                   # Split into 6 parts (default)
+image-split image.png --parts 4              # Split into 4 parts
+image-split ./screenshots --output ./parts   # Process folder
+```
+
+### PDF Splitting
+```bash
+pdf-split [file/directory] [options]
+
+# Examples:
+pdf-split document.pdf                       # Split PDF to PNG images
+pdf-split report.pdf --format jpeg           # Split to JPEG format
+pdf-split ./pdfs --output ./pages            # Process folder
+```
+
+## Traditional Input/Output Folder Usage
+
+The tools also support the traditional input/output folder workflow. When run without arguments, they will:
+- Look for files in `input/compress`, `input/split`, or `input/pdf` folders
+- Output processed files to `output/compress`, `output/split`, or `output/pdf` folders
 
 ## Contributing
 

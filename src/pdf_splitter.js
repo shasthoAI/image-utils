@@ -45,8 +45,9 @@ if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 /**
  * Convert a PDF into images – one per page.
  * @param {string} pdfPath Absolute path to the PDF file
+ * @param {string} outputDir Output directory (optional, defaults to same as input)
  */
-async function convertPdfToImages(pdfPath) {
+export async function convertPdfToImages(pdfPath, outputDir = null) {
   const baseName = path.basename(pdfPath, path.extname(pdfPath));
   const poppler = POPPLER_PATH ? new Poppler(POPPLER_PATH) : new Poppler();
   const opts = {
@@ -63,9 +64,17 @@ async function convertPdfToImages(pdfPath) {
   };
 
   console.log(`Converting ${path.basename(pdfPath)} → ${FORMAT.toUpperCase()} (scale ${SCALE})`);
+  
+  const finalOutputDir = outputDir || path.dirname(pdfPath);
+  
+  // Ensure output directory exists
+  if (!fs.existsSync(finalOutputDir)) {
+    fs.mkdirSync(finalOutputDir, { recursive: true });
+  }
+  
   try {
     // pdfToCairo converts pages; outputFile acts as prefix without extension
-    const outputFile = path.join(outputDir, `${baseName}.${FORMAT}`);
+    const outputFile = path.join(finalOutputDir, `${baseName}.${FORMAT}`);
     const res = await poppler.pdfToCairo(pdfPath, outputFile, opts);
     if (res) {
       // res is array of generated filenames
@@ -79,24 +88,31 @@ async function convertPdfToImages(pdfPath) {
 /**
  * Iterate over PDFs in inputDir and convert each.
  */
-async function processPdfs() {
-  if (!fs.existsSync(inputDir)) {
-    console.error(`Input directory '${inputDir}' does not exist.`);
+export async function processPdfs(sourceDir = null, outputDir = null) {
+  const finalInputDir = sourceDir || inputDir;
+  const finalOutputDir = outputDir || path.resolve(projectRoot, 'output', 'pdf');
+  
+  if (!fs.existsSync(finalInputDir)) {
+    console.error(`Input directory '${finalInputDir}' does not exist.`);
     console.log('Creating it now…');
-    fs.mkdirSync(inputDir, { recursive: true });
+    fs.mkdirSync(finalInputDir, { recursive: true });
     console.log('Add PDF files to split and run the command again.');
     return;
   }
 
-  const files = fs.readdirSync(inputDir).filter((file) => path.extname(file).toLowerCase() === '.pdf');
+  if (!fs.existsSync(finalOutputDir)) {
+    fs.mkdirSync(finalOutputDir, { recursive: true });
+  }
+
+  const files = fs.readdirSync(finalInputDir).filter((file) => path.extname(file).toLowerCase() === '.pdf');
   if (!files.length) {
     console.log('No PDF files found to split.');
     return;
   }
 
   for (const file of files) {
-    const absolutePath = path.join(inputDir, file);
-    await convertPdfToImages(absolutePath);
+    const absolutePath = path.join(finalInputDir, file);
+    await convertPdfToImages(absolutePath, finalOutputDir);
   }
   console.log('PDF splitting complete!');
 }

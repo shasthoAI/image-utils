@@ -43,12 +43,16 @@ if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
  * Split an image horizontally into N equal parts.
  * @param {string} inputPath Absolute path to the input image
  * @param {string} outputBaseName Base name to use for output files
+ * @param {string} outputDir Output directory (optional, defaults to same as input)
  * @param {number} parts Number of horizontal splits (default 6)
  */
-async function splitImageHorizontally(inputPath, outputBaseName, parts = PARTS, topOffset = TOP, sliceHeight = CROP_HEIGHT) {
+export async function splitImageHorizontally(inputPath, outputBaseName, outputDir = null, parts = PARTS, topOffset = TOP, sliceHeight = CROP_HEIGHT) {
   const metadata = await sharp(inputPath).metadata();
   const { width, height, format } = metadata;
   const partWidth = Math.floor(width / parts);
+  
+  // Use provided output directory or default to same as input
+  const finalOutputDir = outputDir || path.dirname(inputPath);
 
   console.log(`Splitting ${path.basename(inputPath)} → ${parts} parts`);
   console.log(`Crop: top=${topOffset}px height=${sliceHeight || height - topOffset}px`);
@@ -56,7 +60,7 @@ async function splitImageHorizontally(inputPath, outputBaseName, parts = PARTS, 
   for (let i = 0; i < parts; i++) {
     const left = i * partWidth;
     const outputPath = path.join(
-      outputDir,
+      finalOutputDir,
       `${outputBaseName}_part${i + 1}.${format}`,
     );
 
@@ -69,16 +73,23 @@ async function splitImageHorizontally(inputPath, outputBaseName, parts = PARTS, 
 /**
  * Iterate over images in `inputDir` and split each.
  */
-async function processImages() {
-  if (!fs.existsSync(inputDir)) {
-    console.error(`Input directory '${inputDir}' does not exist.`);
+export async function processImages(sourceDir = inputDir, outputDir = null) {
+  const finalInputDir = sourceDir || inputDir;
+  const finalOutputDir = outputDir || outputDir || path.resolve(projectRoot, 'output', 'split');
+  
+  if (!fs.existsSync(finalInputDir)) {
+    console.error(`Input directory '${finalInputDir}' does not exist.`);
     console.log('Creating it now…');
-    fs.mkdirSync(inputDir, { recursive: true });
+    fs.mkdirSync(finalInputDir, { recursive: true });
     console.log('Add images to split and run the command again.');
     return;
   }
 
-  const files = fs.readdirSync(inputDir).filter((file) => {
+  if (!fs.existsSync(finalOutputDir)) {
+    fs.mkdirSync(finalOutputDir, { recursive: true });
+  }
+
+  const files = fs.readdirSync(finalInputDir).filter((file) => {
     const ext = path.extname(file).toLowerCase();
     return ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff'].includes(ext);
   });
@@ -88,9 +99,9 @@ async function processImages() {
   }
 
   for (const file of files) {
-    const absolutePath = path.join(inputDir, file);
+    const absolutePath = path.join(finalInputDir, file);
     const baseName = path.basename(file, path.extname(file));
-    await splitImageHorizontally(absolutePath, baseName);
+    await splitImageHorizontally(absolutePath, baseName, finalOutputDir);
   }
   console.log('Splitting complete!');
 }

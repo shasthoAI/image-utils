@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "main": "src/compressor.js",
   "type": "module",
+  "bin": {
+    "image-compress": "./bin/compress.js",
+    "image-split": "./bin/split.js",
+    "pdf-split": "./bin/pdf-split.js"
+  },
   "scripts": {
     "compress": "node src/compressor.js",
     "compress:medium": "node src/compressor.js --medium",
@@ -12,7 +17,10 @@
     "compress:webp": "node src/compressor.js --webp",
     "compress:png-extreme": "node src/compressor.js --png-optimized --extreme",
     "split": "node src/splitter.js",
-    "split:pdf": "node src/pdf_splitter.js"
+    "split:pdf": "node src/pdf_splitter.js",
+    "global:install": "npm install -g .",
+    "global:uninstall": "npm uninstall -g image-utils",
+    "global:update": "npm uninstall -g image-utils && npm install -g ."
   },
   "keywords": [],
   "author": "Shastho Limited <https://github.com/shasthoAI>",

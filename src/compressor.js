@@ -1,6 +1,7 @@
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 // -----------------------------------------------------------------------------
 // Directory configuration (relative to project root)
@@ -12,17 +13,32 @@ const srcDir = path.resolve(process.cwd(), 'input', 'compress');
 const outDir = path.resolve(process.cwd(), 'output', 'compress');
 
 // -----------------------------------------------------------------------------
-// CLI argument parsing
+// CLI argument parsing (only when run directly)
 // -----------------------------------------------------------------------------
-const args = process.argv.slice(2);
-const compressionLevel = args.includes('--extreme')
-  ? 'extreme'
-  : args.includes('--high')
-  ? 'high'
-  : 'medium';
-const convertToWebP = args.includes('--webp');
-const grayscale = args.includes('--grayscale');
-const pngOptimized = args.includes('--png-optimized');
+let args, compressionLevel, convertToWebP, grayscale, pngOptimized;
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  args = process.argv.slice(2);
+  compressionLevel = args.includes('--extreme')
+    ? 'extreme'
+    : args.includes('--high')
+    ? 'high'
+    : 'medium';
+  convertToWebP = args.includes('--webp');
+  grayscale = args.includes('--grayscale');
+  pngOptimized = args.includes('--png-optimized');
+} else {
+  // Default values when imported
+  args = process.argv.slice(2);
+  compressionLevel = args.includes('--extreme')
+    ? 'extreme'
+    : args.includes('--high')
+    ? 'high'
+    : 'medium';
+  convertToWebP = args.includes('--webp');
+  grayscale = args.includes('--grayscale');
+  pngOptimized = args.includes('--png-optimized');
+}
 
 // -----------------------------------------------------------------------------
 // Compression settings
@@ -63,24 +79,27 @@ const compressionSettings = {
   },
 };
 
-console.log(`Compression level: ${pngOptimized ? 'png-optimized' : compressionLevel}`);
-console.log(`Convert to WebP : ${convertToWebP}`);
-console.log(`Apply grayscale : ${grayscale}`);
-console.log(`PNG optimized    : ${pngOptimized}`);
+// Only run setup when this file is executed directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  console.log(`Compression level: ${pngOptimized ? 'png-optimized' : compressionLevel}`);
+  console.log(`Convert to WebP : ${convertToWebP}`);
+  console.log(`Apply grayscale : ${grayscale}`);
+  console.log(`PNG optimized    : ${pngOptimized}`);
 
-// Ensure the required directories exist
-if (!fs.existsSync(srcDir)) {
-  console.error(`Source directory '${srcDir}' does not exist. Creating it now …`);
-  fs.mkdirSync(srcDir, { recursive: true });
-  console.log('Please add images to compress and run the command again.');
-  process.exit(1);
+  // Ensure the required directories exist
+  if (!fs.existsSync(srcDir)) {
+    console.error(`Source directory '${srcDir}' does not exist. Creating it now …`);
+    fs.mkdirSync(srcDir, { recursive: true });
+    console.log('Please add images to compress and run the command again.');
+    process.exit(1);
+  }
+  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 }
-if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
 // -----------------------------------------------------------------------------
 // Helper – multi-pass compression for a single image
 // -----------------------------------------------------------------------------
-const compressImageFile = async (inputPath, outputPath, ext) => {
+export const compressImageFile = async (inputPath, outputPath, ext) => {
   const settings = pngOptimized ? compressionSettings.pngOptimized : compressionSettings[compressionLevel];
   const originalSize = fs.statSync(inputPath).size;
   const fileName = path.basename(inputPath);
@@ -185,7 +204,7 @@ const compressImageFile = async (inputPath, outputPath, ext) => {
 // -----------------------------------------------------------------------------
 // Recursive directory traversal
 // -----------------------------------------------------------------------------
-const compressImages = async (sourceDir = srcDir, outputDir = outDir) => {
+export const compressImages = async (sourceDir = srcDir, outputDir = outDir) => {
   const entries = fs.readdirSync(sourceDir);
   for (const entry of entries) {
     const srcPath = path.join(sourceDir, entry);
@@ -217,4 +236,7 @@ console.log(`Writing compressed images to: ${outDir}\n`);
 console.log(`Usage: node src/compressor.js [options]\n`);
 console.log(`Options:\n  --medium (default)\n  --high\n  --extreme\n  --png-optimized\n  --webp\n  --grayscale\n`);
 
-compressImages().then(() => console.log('Compression complete!'));
+// Only run the CLI when this file is executed directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  compressImages().then(() => console.log('Compression complete!'));
+}
