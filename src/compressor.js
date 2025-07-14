@@ -17,6 +17,23 @@ const outDir = path.resolve(process.cwd(), 'output', 'compress');
 // -----------------------------------------------------------------------------
 let args, compressionLevel, convertToWebP, grayscale, pngOptimized;
 
+// Configuration state
+let currentConfig = {
+  compressionLevel: 'medium',
+  convertToWebP: false,
+  grayscale: false,
+  pngOptimized: false
+};
+
+// Function to set compression configuration
+export const setCompressionConfig = (config) => {
+  currentConfig = { ...currentConfig, ...config };
+  compressionLevel = currentConfig.compressionLevel;
+  convertToWebP = currentConfig.convertToWebP;
+  grayscale = currentConfig.grayscale;
+  pngOptimized = currentConfig.pngOptimized;
+};
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   args = process.argv.slice(2);
   compressionLevel = args.includes('--extreme')
@@ -27,6 +44,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   convertToWebP = args.includes('--webp');
   grayscale = args.includes('--grayscale');
   pngOptimized = args.includes('--png-optimized');
+  
+  // Update current config
+  setCompressionConfig({
+    compressionLevel,
+    convertToWebP,
+    grayscale,
+    pngOptimized
+  });
 } else {
   // Default values when imported
   args = process.argv.slice(2);
@@ -38,6 +63,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   convertToWebP = args.includes('--webp');
   grayscale = args.includes('--grayscale');
   pngOptimized = args.includes('--png-optimized');
+  
+  // Update current config
+  setCompressionConfig({
+    compressionLevel,
+    convertToWebP,
+    grayscale,
+    pngOptimized
+  });
 }
 
 // -----------------------------------------------------------------------------

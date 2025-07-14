@@ -6,7 +6,8 @@
   "bin": {
     "image-compress": "./bin/compress.js",
     "image-split": "./bin/split.js",
-    "pdf-split": "./bin/pdf-split.js"
+    "pdf-split": "./bin/pdf-split.js",
+    "image-utils-mcp": "./src/mcp-server.js"
   },
   "scripts": {
     "compress": "node src/compressor.js",
@@ -18,6 +19,8 @@
     "compress:png-extreme": "node src/compressor.js --png-optimized --extreme",
     "split": "node src/splitter.js",
     "split:pdf": "node src/pdf_splitter.js",
+    "mcp:server": "node src/mcp-server.js",
+    "mcp:test": "node test-mcp-full.js",
     "global:install": "npm install -g .",
     "global:uninstall": "npm uninstall -g image-utils",
     "global:update": "npm uninstall -g image-utils && npm install -g ."
@@ -31,8 +34,9 @@
   "license": "MIT",
   "description": "A collection of lightweight Node.js utilities for common image processing tasks, including compression and splitting.",
   "dependencies": {
-    "sharp": "^0.34.2",
+    "@modelcontextprotocol/sdk": "^0.5.0",
     "dotenv": "^16.4.5",
-    "node-poppler": "^8.0.1"
+    "node-poppler": "^8.0.1",
+    "sharp": "^0.34.2"
   }
 }

@@ -4,7 +4,7 @@
 
 A collection of lightweight Node.js utilities for common image processing tasks, developed by Shastho Limited.
 
-This repository provides tools for image compression and splitting, designed to be simple, efficient, and easy to integrate into your workflows.
+This repository provides tools for image compression and splitting, designed to be simple, efficient, and easy to integrate into your workflows. **Now available as an MCP (Model Context Protocol) server for use with Claude, VS Code, and other MCP-compatible tools!**
 
 ## Services
 
@@ -15,6 +15,42 @@ Detailed documentation for each service can be found in the `docs/` directory.
 | Compressor  | Optimizes images with multiple compression levels, WebP conversion, and more. | [docs/compressor.md](docs/compressor.md)       |
 | Splitter    | Slices large images or screenshots into a specified number of equal parts.  | [docs/splitter.md](docs/splitter.md)          |
 | PDF Splitter | Converts each page of a PDF into PNG/JPEG/TIFF images. | [docs/pdf_splitter.md](docs/pdf_splitter.md) |
+| **MCP Server** | **Model Context Protocol server for AI assistant integration** | **[MCP_CONFIG.md](MCP_CONFIG.md)** |
+
+## MCP Server Integration
+
+This package now includes a Model Context Protocol (MCP) server that allows AI assistants like Claude to use these image processing tools directly. The MCP server provides:
+
+- **Image Compression**: Single file and batch compression with multiple quality levels
+- **Format Conversion**: Convert images to WebP, apply grayscale filters
+- **Image Splitting**: Split images horizontally into multiple parts
+- **PDF Conversion**: Convert PDF pages to image files
+- **Image Analysis**: Get detailed metadata about image files
+
+### Quick MCP Setup
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Add to Claude Desktop** (see [MCP_CONFIG.md](MCP_CONFIG.md) for full instructions):
+   ```json
+   {
+     "mcpServers": {
+       "image-utils": {
+         "command": "node",
+         "args": ["src/mcp-server.js"],
+         "cwd": "/path/to/image-utils"
+       }
+     }
+   }
+   ```
+
+3. **Start using with Claude:**
+   - "Compress this image with high quality: /path/to/photo.jpg"
+   - "Split this screenshot into 4 parts: /path/to/screenshot.png"
+   - "Convert this PDF to PNG images: /path/to/document.pdf"
 
 ## Getting Started
 
