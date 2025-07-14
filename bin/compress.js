@@ -22,8 +22,8 @@ Options:
 
 Examples:
   image-compress                              # Use input/compress folder
-  image-compress image.jpg                    # Compress single file in-place
-  image-compress ./photos                     # Compress all images in photos folder
+  image-compress image.jpg                    # Creates image-compressed.jpg in same folder
+  image-compress ./photos                     # Creates 'compressed' subfolder with processed images
   image-compress image.jpg --output ./out     # Compress to specific output directory
   image-compress --webp --high ./images      # High compression + WebP conversion
 `);
@@ -69,7 +69,15 @@ async function main() {
       const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : path.dirname(absoluteInputPath);
       const baseName = path.basename(absoluteInputPath, ext);
       const convertToWebP = args.includes('--webp');
-      const outputFile = path.join(outputDir, convertToWebP ? `${baseName}.webp` : path.basename(absoluteInputPath));
+      
+      // Generate output filename with suffix to indicate processing
+      let outputFileName;
+      if (convertToWebP) {
+        outputFileName = `${baseName}-compressed.webp`;
+      } else {
+        outputFileName = `${baseName}-compressed${ext}`;
+      }
+      const outputFile = path.join(outputDir, outputFileName);
       
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
@@ -82,8 +90,8 @@ async function main() {
       await compressImageFile(absoluteInputPath, outputFile, ext);
       
     } else if (stats.isDirectory()) {
-      // Directory processing
-      const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : absoluteInputPath;
+      // Directory processing - create a subdirectory for compressed files
+      const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : path.join(absoluteInputPath, 'compressed');
       
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });

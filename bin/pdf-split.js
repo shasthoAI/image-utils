@@ -18,8 +18,8 @@ Options:
 
 Examples:
   pdf-split                                   # Use input/pdf folder
-  pdf-split document.pdf                      # Split single PDF in-place
-  pdf-split ./documents                       # Split all PDFs in documents folder
+  pdf-split document.pdf                      # Creates document-1.png, document-2.png, etc. in same folder
+  pdf-split ./documents                       # Creates 'pdf-pages' subfolder with processed images
   pdf-split document.pdf --format jpeg       # Split to JPEG format
   pdf-split document.pdf --output ./pages    # Split to specific output directory
 `);
@@ -82,8 +82,8 @@ async function main() {
       await convertPdfToImages(absoluteInputPath, outputDir);
       
     } else if (stats.isDirectory()) {
-      // Directory processing
-      const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : absoluteInputPath;
+      // Directory processing - create a subdirectory for PDF pages
+      const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : path.join(absoluteInputPath, 'pdf-pages');
       
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });

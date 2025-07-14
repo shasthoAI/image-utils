@@ -16,7 +16,7 @@ Compress images with various quality settings:
 # Basic usage - compress in current directory
 image-compress photo.jpg
 
-# Compress with high compression
+# Compress with high compression  
 image-compress ./photos --high
 
 # Convert to WebP format
@@ -92,13 +92,13 @@ pdf-split report.pdf
 ```
 This will create PNG images like `report-1.png`, `report-2.png`, etc. in the same folder.
 
-### Scenario 2: You have photos in `/Users/jane/Photos` that need compression
+### Scenario 2: You have a photo in `/Users/jane/Photos` that needs compression
 
 ```bash
 cd /Users/jane/Photos
-image-compress . --high --output ./compressed
+image-compress vacation-photo.jpg --high
 ```
-This will compress all images in the Photos folder and save them to a new `compressed` subfolder.
+This will create `vacation-photo-compressed.jpg` in the same folder.
 
 ### Scenario 3: You have a long screenshot that needs to be split
 
@@ -106,7 +106,27 @@ This will compress all images in the Photos folder and save them to a new `compr
 cd /Users/bob/Screenshots
 image-split long-screenshot.png --parts 3
 ```
-This will create `long-screenshot_part1.png`, `long-screenshot_part2.png`, and `long-screenshot_part3.png`.
+This will create `long-screenshot_part1.png`, `long-screenshot_part2.png`, and `long-screenshot_part3.png` in the same folder.
+
+### Scenario 4: You have a folder of images to process
+
+```bash
+cd /Users/alice/ProjectImages
+image-compress .
+```
+This will create a `compressed` subfolder with all processed images.
+
+```bash
+cd /Users/alice/Screenshots
+image-split .
+```
+This will create a `split` subfolder with all split images.
+
+```bash
+cd /Users/alice/Documents
+pdf-split .
+```
+This will create a `pdf-pages` subfolder with all PDF pages converted to images.
 
 ## Managing the Global Installation
 

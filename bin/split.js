@@ -19,8 +19,8 @@ Options:
 
 Examples:
   image-split                                 # Use input/split folder
-  image-split image.png                       # Split single file in-place
-  image-split ./screenshots                   # Split all images in screenshots folder
+  image-split image.png                       # Creates image_part1.png, image_part2.png, etc. in same folder
+  image-split ./screenshots                   # Creates 'split' subfolder with processed images
   image-split image.png --parts 4            # Split into 4 parts
   image-split image.png --output ./parts     # Split to specific output directory
 `);
@@ -89,8 +89,8 @@ async function main() {
       await splitImageHorizontally(absoluteInputPath, baseName, outputDir, parts, top, height);
       
     } else if (stats.isDirectory()) {
-      // Directory processing
-      const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : absoluteInputPath;
+      // Directory processing - create a subdirectory for split files
+      const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : path.join(absoluteInputPath, 'split');
       
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
