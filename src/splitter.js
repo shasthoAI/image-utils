@@ -75,7 +75,7 @@ export async function splitImageHorizontally(inputPath, outputBaseName, outputDi
  */
 export async function processImages(sourceDir = inputDir, outputDir = null) {
   const finalInputDir = sourceDir || inputDir;
-  const finalOutputDir = outputDir || outputDir || path.resolve(projectRoot, 'output', 'split');
+  const finalOutputDir = outputDir || (sourceDir ? sourceDir : path.resolve(projectRoot, 'output', 'split'));
   
   if (!fs.existsSync(finalInputDir)) {
     console.error(`Input directory '${finalInputDir}' does not exist.`);
@@ -85,7 +85,7 @@ export async function processImages(sourceDir = inputDir, outputDir = null) {
     return;
   }
 
-  if (!fs.existsSync(finalOutputDir)) {
+  if (finalInputDir !== finalOutputDir && !fs.existsSync(finalOutputDir)) {
     fs.mkdirSync(finalOutputDir, { recursive: true });
   }
 

@@ -90,7 +90,7 @@ export async function convertPdfToImages(pdfPath, outputDir = null) {
  */
 export async function processPdfs(sourceDir = null, outputDir = null) {
   const finalInputDir = sourceDir || inputDir;
-  const finalOutputDir = outputDir || path.resolve(projectRoot, 'output', 'pdf');
+  const finalOutputDir = outputDir || (sourceDir ? sourceDir : path.resolve(projectRoot, 'output', 'pdf'));
   
   if (!fs.existsSync(finalInputDir)) {
     console.error(`Input directory '${finalInputDir}' does not exist.`);
@@ -100,7 +100,7 @@ export async function processPdfs(sourceDir = null, outputDir = null) {
     return;
   }
 
-  if (!fs.existsSync(finalOutputDir)) {
+  if (finalInputDir !== finalOutputDir && !fs.existsSync(finalOutputDir)) {
     fs.mkdirSync(finalOutputDir, { recursive: true });
   }
 

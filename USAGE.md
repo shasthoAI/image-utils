@@ -112,21 +112,23 @@ This will create `long-screenshot_part1.png`, `long-screenshot_part2.png`, and `
 
 ```bash
 cd /Users/alice/ProjectImages
-image-compress .
+image-compress . --output ./compressed
 ```
 This will create a `compressed` subfolder with all processed images.
 
 ```bash
-cd /Users/alice/Screenshots
-image-split .
+cd /Users/alice/Screenshots  
+image-split . --output ./split
 ```
 This will create a `split` subfolder with all split images.
 
 ```bash
 cd /Users/alice/Documents
-pdf-split .
+pdf-split . --output ./pdf-pages
 ```
 This will create a `pdf-pages` subfolder with all PDF pages converted to images.
+
+**Note**: When processing directories without `--output`, files are processed in-place with suffixes like `-compressed`, `_part1`, etc.
 
 ## Managing the Global Installation
 

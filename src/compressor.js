@@ -238,20 +238,60 @@ export const compressImageFile = async (inputPath, outputPath, ext) => {
 // Recursive directory traversal
 // -----------------------------------------------------------------------------
 export const compressImages = async (sourceDir = srcDir, outputDir = outDir) => {
+  // Skip common output directories to avoid infinite recursion
+  const skipDirs = ['compressed', 'pdf-pages', 'split', 'output', 'node_modules', '.git'];
+  
+  // Prevent infinite recursion by checking if we're already processing a nested compressed directory
+  const pathParts = sourceDir.split(path.sep);
+  const hasCompressedInPath = pathParts.some(part => skipDirs.includes(part));
+  if (hasCompressedInPath && sourceDir !== outputDir) {
+    console.log(`Skipping nested output directory: ${sourceDir}`);
+    return;
+  }
+  
+  // Ensure output directory exists
+  if (sourceDir !== outputDir && !fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+  
   const entries = fs.readdirSync(sourceDir);
   for (const entry of entries) {
     const srcPath = path.join(sourceDir, entry);
     const stats = fs.statSync(srcPath);
+    
     if (stats.isDirectory()) {
-      const nestedOutputDir = path.join(outputDir, entry);
-      if (!fs.existsSync(nestedOutputDir)) fs.mkdirSync(nestedOutputDir, { recursive: true });
-      await compressImages(srcPath, nestedOutputDir);
+      // Skip output directories and hidden directories
+      if (skipDirs.includes(entry) || entry.startsWith('.')) {
+        console.log(`Skipping directory: ${entry}`);
+        continue;
+      }
+      
+      // For in-place processing (sourceDir === outputDir), process recursively without creating subdirs
+      if (sourceDir === outputDir) {
+        await compressImages(srcPath, srcPath);
+      } else {
+        // For separate output dir, maintain directory structure
+        const nestedOutputDir = path.join(outputDir, entry);
+        await compressImages(srcPath, nestedOutputDir);
+      }
     } else if (stats.isFile()) {
       const ext = path.extname(entry).toLowerCase();
       if (!['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.tiff'].includes(ext)) continue;
 
       const baseName = path.basename(entry, ext);
-      const outputPath = path.join(outputDir, convertToWebP ? `${baseName}.webp` : entry);
+      let outputPath;
+      
+      // For in-place processing, add suffix to avoid overwriting original
+      if (sourceDir === outputDir) {
+        if (convertToWebP) {
+          outputPath = path.join(outputDir, `${baseName}-compressed.webp`);
+        } else {
+          outputPath = path.join(outputDir, `${baseName}-compressed${ext}`);
+        }
+      } else {
+        outputPath = path.join(outputDir, convertToWebP ? `${baseName}.webp` : entry);
+      }
+      
       if (fs.existsSync(outputPath)) {
         console.log(`Skipping ${entry}: already compressed.`);
         continue;

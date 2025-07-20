@@ -101,7 +101,7 @@ image-compress [file/directory] [options]
 
 # Examples:
 image-compress photo.jpg --high              # Compress single file
-image-compress ./photos --webp               # Convert folder to WebP
+image-compress ./photos --webp               # Convert folder in-place to WebP
 image-compress image.png --output ./out      # Compress to specific folder
 ```
 
@@ -112,7 +112,7 @@ image-split [file/directory] [options]
 # Examples:
 image-split screenshot.png                   # Split into 6 parts (default)
 image-split image.png --parts 4              # Split into 4 parts
-image-split ./screenshots --output ./parts   # Process folder
+image-split ./screenshots --output ./parts   # Process folder to separate output
 ```
 
 ### PDF Splitting
@@ -122,7 +122,7 @@ pdf-split [file/directory] [options]
 # Examples:
 pdf-split document.pdf                       # Split PDF to PNG images
 pdf-split report.pdf --format jpeg           # Split to JPEG format
-pdf-split ./pdfs --output ./pages            # Process folder
+pdf-split ./pdfs --output ./pages            # Process folder to separate output
 ```
 
 ## Traditional Input/Output Folder Usage
@@ -137,7 +137,9 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 
 ## Notes
 
-- The compressor will skip files that already exist in the output directory
+- When processing directories without specifying `--output`, files are processed in-place with suffixes (e.g., `-compressed`, `_part1`) to avoid overwriting originals
+- Use `--output` to specify a separate output directory when you want to keep processed files separate
+- The compressor will skip files that already exist in the output location
 - If compression would increase file size, the original file is kept
 - WebP format provides the smallest file sizes but may not be compatible with all platforms
 - PNG-optimized mode is recommended for mobile app development

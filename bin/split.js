@@ -11,18 +11,18 @@ Usage:
   image-split [options] [file/directory]
 
 Options:
-  --parts <n>       Number of horizontal parts (default: 6)
-  --top <n>         Pixel offset from top (default: 0)
-  --height <n>      Height of each slice (default: full height)
+  --parts <n>       Number of parts to split into (default: 6)
+  --height <n>      Height of each slice in pixels (0 for auto)
+  --top <n>         Pixel offset from top before cropping (default: 0)
   --output <dir>    Output directory (default: same as input)
   --help            Show this help message
 
 Examples:
   image-split                                 # Use input/split folder
-  image-split image.png                       # Creates image_part1.png, image_part2.png, etc. in same folder
-  image-split ./screenshots                   # Creates 'split' subfolder with processed images
+  image-split screenshot.png                  # Creates screenshot_part1.png, etc. in same folder
+  image-split ./screenshots                   # Splits images in-place
   image-split image.png --parts 4            # Split into 4 parts
-  image-split image.png --output ./parts     # Split to specific output directory
+  image-split ./images --output ./parts      # Split to specific output directory
 `);
 }
 
@@ -89,11 +89,18 @@ async function main() {
       await splitImageHorizontally(absoluteInputPath, baseName, outputDir, parts, top, height);
       
     } else if (stats.isDirectory()) {
-      // Directory processing - create a subdirectory for split files
-      const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : path.join(absoluteInputPath, 'split');
+      // Directory processing
+      let outputDir;
       
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
+      if (outputPath) {
+        // Use specified output directory
+        outputDir = path.resolve(process.cwd(), outputPath);
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true });
+        }
+      } else {
+        // Process in place (same directory)
+        outputDir = absoluteInputPath;
       }
 
       console.log(`Splitting images in: ${absoluteInputPath}`);

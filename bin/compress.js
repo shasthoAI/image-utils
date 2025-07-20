@@ -23,7 +23,7 @@ Options:
 Examples:
   image-compress                              # Use input/compress folder
   image-compress image.jpg                    # Creates image-compressed.jpg in same folder
-  image-compress ./photos                     # Creates 'compressed' subfolder with processed images
+  image-compress ./photos                     # Compresses images in-place with "-compressed" suffix
   image-compress image.jpg --output ./out     # Compress to specific output directory
   image-compress --webp --high ./images      # High compression + WebP conversion
 `);
@@ -90,11 +90,18 @@ async function main() {
       await compressImageFile(absoluteInputPath, outputFile, ext);
       
     } else if (stats.isDirectory()) {
-      // Directory processing - create a subdirectory for compressed files
-      const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : path.join(absoluteInputPath, 'compressed');
+      // Directory processing
+      let outputDir;
       
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
+      if (outputPath) {
+        // Use specified output directory
+        outputDir = path.resolve(process.cwd(), outputPath);
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true });
+        }
+      } else {
+        // Process in place (same directory)
+        outputDir = absoluteInputPath;
       }
 
       console.log(`Compressing images in: ${absoluteInputPath}`);
