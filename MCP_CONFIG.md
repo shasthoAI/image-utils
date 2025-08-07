@@ -52,7 +52,7 @@ For easier usage, you can install the package globally:
 npm install -g .
 
 # Then use the binary directly
-image-utils-mcp
+
 ```
 
 Then update your MCP client configuration to use the global binary:

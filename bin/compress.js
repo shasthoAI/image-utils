@@ -8,7 +8,12 @@ function showHelp() {
 Image Compressor CLI
 
 Usage:
-  image-compress [options] [file/directory]
+  image-compress [options] <source> [target]
+  image-compress [options] <source> --output <target>
+
+Arguments:
+  source            Source file or directory to compress
+  target            Target directory for output (optional)
 
 Options:
   --medium          Medium compression (default)
@@ -17,15 +22,16 @@ Options:
   --png-optimized   PNG optimized compression
   --webp            Convert to WebP format
   --grayscale       Apply grayscale filter
-  --output <dir>    Output directory (default: same as input)
+  --output <dir>    Output directory (overrides target argument)
   --help            Show this help message
 
 Examples:
-  image-compress                              # Use input/compress folder
   image-compress image.jpg                    # Creates image-compressed.jpg in same folder
-  image-compress ./photos                     # Compresses images in-place with "-compressed" suffix
-  image-compress image.jpg --output ./out     # Compress to specific output directory
-  image-compress --webp --high ./images      # High compression + WebP conversion
+  image-compress image.jpg compressed/        # Compress to 'compressed' directory
+  image-compress . output/                    # Compress current folder to 'output' directory
+  image-compress ./photos ./results          # Compress 'photos' folder to 'results' directory
+  image-compress image.jpg --output ./out    # Compress to specific output directory
+  image-compress --webp --high ./images      # High compression + WebP conversion in-place
 `);
 }
 
@@ -37,84 +43,89 @@ async function main() {
     process.exit(0);
   }
 
-  // Find the input path (first non-flag argument)
-  const inputPath = args.find(arg => !arg.startsWith('--'));
+  // Get all non-flag arguments (positional arguments)
+  const positionalArgs = args.filter(arg => !arg.startsWith('--'));
   
-  // Find output directory if specified
+  // First positional argument is source, second is target (if provided)
+  const inputPath = positionalArgs[0];
+  const targetPath = positionalArgs[1];
+  
+  // Find output directory if specified with --output flag (overrides positional target)
   const outputIndex = args.indexOf('--output');
-  const outputPath = outputIndex !== -1 ? args[outputIndex + 1] : null;
+  const outputPath = outputIndex !== -1 ? args[outputIndex + 1] : targetPath;
 
   // Set the CLI arguments for the compressor module to use
   process.argv = ['node', 'compressor.js', ...args.filter(arg => arg.startsWith('--'))];
 
-  if (inputPath) {
-    // CLI mode - process specific file or directory
-    const absoluteInputPath = path.resolve(process.cwd(), inputPath);
-    
-    if (!fs.existsSync(absoluteInputPath)) {
-      console.error(`Error: '${inputPath}' does not exist.`);
+  if (!inputPath) {
+    console.error('Error: Source file or directory is required.');
+    console.log('Use --help for usage information.');
+    process.exit(1);
+  }
+
+  // Process the specified file or directory
+  const absoluteInputPath = path.resolve(process.cwd(), inputPath);
+  
+  if (!fs.existsSync(absoluteInputPath)) {
+    console.error(`Error: '${inputPath}' does not exist.`);
+    process.exit(1);
+  }
+
+  const stats = fs.statSync(absoluteInputPath);
+  
+  if (stats.isFile()) {
+    // Single file processing
+    const ext = path.extname(absoluteInputPath).toLowerCase();
+    if (!['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.tiff'].includes(ext)) {
+      console.error(`Error: '${inputPath}' is not a supported image format.`);
       process.exit(1);
     }
 
-    const stats = fs.statSync(absoluteInputPath);
+    const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : path.dirname(absoluteInputPath);
+    const baseName = path.basename(absoluteInputPath, ext);
+    const convertToWebP = args.includes('--webp');
     
-    if (stats.isFile()) {
-      // Single file processing
-      const ext = path.extname(absoluteInputPath).toLowerCase();
-      if (!['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.tiff'].includes(ext)) {
-        console.error(`Error: '${inputPath}' is not a supported image format.`);
-        process.exit(1);
-      }
+    // Generate output filename
+    let outputFileName;
+    if (outputPath && outputPath !== path.dirname(absoluteInputPath)) {
+      // If we have a separate output directory, don't add suffix
+      outputFileName = convertToWebP ? `${baseName}.webp` : path.basename(absoluteInputPath);
+    } else {
+      // If processing in-place, add suffix to avoid overwriting
+      outputFileName = convertToWebP ? `${baseName}-compressed.webp` : `${baseName}-compressed${ext}`;
+    }
+    const outputFile = path.join(outputDir, outputFileName);
+    
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
 
-      const outputDir = outputPath ? path.resolve(process.cwd(), outputPath) : path.dirname(absoluteInputPath);
-      const baseName = path.basename(absoluteInputPath, ext);
-      const convertToWebP = args.includes('--webp');
-      
-      // Generate output filename with suffix to indicate processing
-      let outputFileName;
-      if (convertToWebP) {
-        outputFileName = `${baseName}-compressed.webp`;
-      } else {
-        outputFileName = `${baseName}-compressed${ext}`;
-      }
-      const outputFile = path.join(outputDir, outputFileName);
-      
+    console.log(`Compressing: ${absoluteInputPath}`);
+    console.log(`Output: ${outputFile}`);
+    
+    const { compressImageFile } = await import('../src/compressor.js');
+    await compressImageFile(absoluteInputPath, outputFile, ext);
+    
+  } else if (stats.isDirectory()) {
+    // Directory processing
+    let outputDir;
+    
+    if (outputPath) {
+      // Use specified output directory
+      outputDir = path.resolve(process.cwd(), outputPath);
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }
-
-      console.log(`Compressing: ${absoluteInputPath}`);
-      console.log(`Output: ${outputFile}`);
-      
-      const { compressImageFile } = await import('../src/compressor.js');
-      await compressImageFile(absoluteInputPath, outputFile, ext);
-      
-    } else if (stats.isDirectory()) {
-      // Directory processing
-      let outputDir;
-      
-      if (outputPath) {
-        // Use specified output directory
-        outputDir = path.resolve(process.cwd(), outputPath);
-        if (!fs.existsSync(outputDir)) {
-          fs.mkdirSync(outputDir, { recursive: true });
-        }
-      } else {
-        // Process in place (same directory)
-        outputDir = absoluteInputPath;
-      }
-
-      console.log(`Compressing images in: ${absoluteInputPath}`);
-      console.log(`Output directory: ${outputDir}`);
-      
-      const { compressImages } = await import('../src/compressor.js');
-      await compressImages(absoluteInputPath, outputDir);
+    } else {
+      // Process in place (same directory)
+      outputDir = absoluteInputPath;
     }
-  } else {
-    // Default mode - use existing input/output folders
-    console.log('No input path specified, using default input/compress folder...');
+
+    console.log(`Compressing images in: ${absoluteInputPath}`);
+    console.log(`Output directory: ${outputDir}`);
+    
     const { compressImages } = await import('../src/compressor.js');
-    await compressImages();
+    await compressImages(absoluteInputPath, outputDir);
   }
   
   console.log('Compression complete!');
