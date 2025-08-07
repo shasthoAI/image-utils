@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processing Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .nav-tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .nav-tab:hover {
+            background: #e9ecef;
+        }
+        
+        .nav-tab.active {
+            background: white;
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .upload-area {
+            border: 3px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 60px 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .checkbox-item input {
+            width: auto;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .file-list {
+            margin: 20px 0;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .file-info {
+            flex: 1;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .file-size {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .results {
+            margin-top: 30px;
+        }
+        
+        .result-item {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .result-success {
+            border-left: 4px solid #28a745;
+        }
+        
+        .result-error {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .jobs-list {
+            margin-top: 20px;
+        }
+        
+        .job-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .job-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+        
+        .job-info h4 {
+            margin-bottom: 5px;
+            color: #495057;
+        }
+        
+        .job-meta {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .job-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .chain-builder {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chain-step {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid #dee2e6;
+        }
+        
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .remove-step {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        
+        .add-step {
+            width: 100%;
+            padding: 15px;
+            border: 2px dashed #667eea;
+            background: none;
+            border-radius: 8px;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .add-step:hover {
+            background: #f8f9ff;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        
+        .close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .download-links {
+            margin-top: 15px;
+        }
+        
+        .download-link {
+            display: inline-block;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            padding: 8px 15px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .download-link:hover {
+            background: #5a67d8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Image Processing Tools</h1>
+            <p>Compress, split, and convert your images and PDFs with ease</p>
+        </div>
+        
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('compress')">Compress Images</button>
+            <button class="nav-tab" onclick="showTab('split')">Split Images</button>
+            <button class="nav-tab" onclick="showTab('pdf')">PDF to Images</button>
+            <button class="nav-tab" onclick="showTab('chains')">Tool Chains</button>
+            <button class="nav-tab" onclick="showTab('jobs')">Job History</button>
+        </div>
+        
+        <div class="content">
+            <!-- Compress Tab -->
+            <div id="compress-tab" class="tab-content active">
+                <h2>Image Compression</h2>
+                <form id="compress-form">
+                    <div class="upload-area" onclick="document.getElementById('compress-files').click()">
+                        <div class="upload-icon">📁</div>
+                        <h3>Click to select images or drag & drop</h3>
+                        <p>Supports: JPG, PNG, WebP, GIF, TIFF, AVIF</p>
+                        <input type="file" id="compress-files" class="file-input" multiple accept="image/*">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Compression Level</label>
+                        <select name="level">
+                            <option value="medium">Medium (60% quality, 1024px width)</option>
+                            <option value="high">High (40% quality, 800px width)</option>
+                            <option value="extreme">Extreme (20% quality, 600px width)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" name="webp" id="webp">
+                            <label for="webp">Convert to WebP</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" name="grayscale" id="grayscale">
+                            <label for="grayscale">Convert to Grayscale</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" name="pngOptimized" id="pngOptimized">
+                            <label for="pngOptimized">PNG Optimized</label>
+                        </div>
+                    </div>
+                    
+                    <div class="file-list" id="compress-file-list"></div>
+                    
+                    <button type="submit" class="btn btn-primary">Compress Images</button>
+                </form>
+                <div id="compress-results" class="results"></div>
+            </div>
+            
+            <!-- Split Tab -->
+            <div id="split-tab" class="tab-content">
+                <h2>Split Images Horizontally</h2>
+                <form id="split-form">
+                    <div class="upload-area" onclick="document.getElementById('split-files').click()">
+                        <div class="upload-icon">✂️</div>
+                        <h3>Click to select images or drag & drop</h3>
+                        <p>Supports: JPG, PNG, WebP, GIF, TIFF</p>
+                        <input type="file" id="split-files" class="file-input" multiple accept="image/*">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Number of Parts</label>
+                        <input type="number" name="parts" value="6" min="2" max="20">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Top Offset (pixels)</label>
+                        <input type="number" name="topOffset" value="0" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Slice Height (pixels, 0 for auto)</label>
+                        <input type="number" name="sliceHeight" value="0" min="0">
+                    </div>
+                    
+                    <div class="file-list" id="split-file-list"></div>
+                    
+                    <button type="submit" class="btn btn-primary">Split Images</button>
+                </form>
+                <div id="split-results" class="results"></div>
+            </div>
+            
+            <!-- PDF Tab -->
+            <div id="pdf-tab" class="tab-content">
+                <h2>PDF to Images</h2>
+                <form id="pdf-form">
+                    <div class="upload-area" onclick="document.getElementById('pdf-files').click()">
+                        <div class="upload-icon">📄</div>
+                        <h3>Click to select PDFs or drag & drop</h3>
+                        <p>Supports: PDF files</p>
+                        <input type="file" id="pdf-files" class="file-input" multiple accept=".pdf">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Output Format</label>
+                        <select name="format">
+                            <option value="png">PNG</option>
+                            <option value="jpeg">JPEG</option>
+                            <option value="tiff">TIFF</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>DPI Scale</label>
+                        <input type="number" name="scale" value="150" min="50" max="300">
+                    </div>
+                    
+                    <div class="file-list" id="pdf-file-list"></div>
+                    
+                    <button type="submit" class="btn btn-primary">Convert PDFs</button>
+                </form>
+                <div id="pdf-results" class="results"></div>
+            </div>
+            
+            <!-- Chains Tab -->
+            <div id="chains-tab" class="tab-content">
+                <h2>Tool Chains</h2>
+                <p>Create workflows that chain multiple tools together - use the output of one tool as input to the next.</p>
+                
+                <div class="chain-builder">
+                    <h3>Create New Chain</h3>
+                    <div class="form-group">
+                        <label>Chain Name</label>
+                        <input type="text" id="chain-name" placeholder="e.g., PDF → Split → Compress">
+                    </div>
+                    
+                    <div id="chain-steps"></div>
+                    
+                    <button type="button" class="add-step" onclick="addChainStep()">+ Add Step</button>
+                    
+                    <div style="margin-top: 20px;">
+                        <button type="button" class="btn btn-primary" onclick="saveChain()">Save Chain</button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3>Existing Chains</h3>
+                    <div id="chains-list"></div>
+                </div>
+                
+                <div>
+                    <h3>Execute Chain</h3>
+                    <form id="chain-execute-form">
+                        <div class="form-group">
+                            <label>Select Chain</label>
+                            <select id="chain-select">
+                                <option value="">Select a chain...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="upload-area" onclick="document.getElementById('chain-files').click()">
+                            <div class="upload-icon">🔗</div>
+                            <h3>Click to select files or drag & drop</h3>
+                            <p>Supports: Images and PDFs</p>
+                            <input type="file" id="chain-files" class="file-input" multiple accept="image/*,.pdf">
+                        </div>
+                        
+                        <div class="file-list" id="chain-file-list"></div>
+                        
+                        <button type="submit" class="btn btn-primary">Execute Chain</button>
+                    </form>
+                    <div id="chain-results" class="results"></div>
+                </div>
+            </div>
+            
+            <!-- Jobs Tab -->
+            <div id="jobs-tab" class="tab-content">
+                <h2>Job History</h2>
+                <button type="button" class="btn btn-secondary" onclick="loadJobs()" style="margin-bottom: 20px;">Refresh</button>
+                <div id="jobs-list" class="jobs-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Details Modal -->
+    <div id="job-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeJobModal()">&times;</span>
+            <div id="job-details"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentFiles = {};
+        let chainStepCount = 0;
+
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // File handling
+        function setupFileInput(inputId, listId, allowedTypes) {
+            const input = document.getElementById(inputId);
+            const list = document.getElementById(listId);
+            const uploadArea = input.closest('.upload-area') || input.parentElement.querySelector('.upload-area');
+            
+            if (uploadArea) {
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+                
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
+                
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    const files = Array.from(e.dataTransfer.files).filter(file => {
+                        return allowedTypes.some(type => file.name.toLowerCase().endsWith(type));
+                    });
+                    updateFileList(files, listId);
+                    currentFiles[inputId] = files;
+                });
+            }
+            
+            input.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                updateFileList(files, listId);
+                currentFiles[inputId] = files;
+            });
+        }
+
+        function updateFileList(files, listId) {
+            const list = document.getElementById(listId);
+            list.innerHTML = '';
+            
+            files.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button type="button" onclick="removeFile('${listId}', ${index})" style="background: #dc3545; color: white; border: none; border-radius: 5px; padding: 5px 10px;">Remove</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function removeFile(listId, index) {
+            const inputId = listId.replace('-file-list', '-files');
+            const files = Array.from(currentFiles[inputId] || []);
+            files.splice(index, 1);
+            currentFiles[inputId] = files;
+            updateFileList(files, listId);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // API calls
+        async function submitForm(endpoint, formData, resultElementId) {
+            const resultElement = document.getElementById(resultElementId);
+            resultElement.innerHTML = '<div class="loading"><div class="spinner"></div><p>Processing...</p></div>';
+            
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Processing failed');
+                }
+                
+                displayResults(result, resultElement);
+            } catch (error) {
+                resultElement.innerHTML = `<div class="result-item result-error">Error: ${error.message}</div>`;
+            }
+        }
+
+        function displayResults(result, element) {
+            let html = `<h3>Job completed! Job ID: ${result.jobId}</h3>`;
+            
+            result.results.forEach(item => {
+                const className = item.success ? 'result-success' : 'result-error';
+                html += `<div class="result-item ${className}">`;
+                html += `<h4>${item.original}</h4>`;
+                
+                if (item.success) {
+                    if (item.compressed) {
+                        html += `<p>✅ Compressed: ${item.compressed}</p>`;
+                        html += `<div class="download-links"><a href="/api/download/${result.jobId}/${item.compressed}" class="download-link">Download</a></div>`;
+                    } else if (item.parts) {
+                        html += `<p>✅ Split into ${item.parts.length} parts</p>`;
+                        html += '<div class="download-links">';
+                        item.parts.forEach(part => {
+                            html += `<a href="/api/download/${result.jobId}/${part}" class="download-link">${part}</a>`;
+                        });
+                        html += '</div>';
+                    } else if (item.pages) {
+                        html += `<p>✅ Converted to ${item.pages.length} images</p>`;
+                        html += '<div class="download-links">';
+                        item.pages.forEach(page => {
+                            html += `<a href="/api/download/${result.jobId}/${page}" class="download-link">${page}</a>`;
+                        });
+                        html += '</div>';
+                    }
+                } else {
+                    html += `<p>❌ ${item.error}</p>`;
+                }
+                
+                html += '</div>';
+            });
+            
+            element.innerHTML = html;
+        }
+
+        // Form submissions
+        document.getElementById('compress-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const files = currentFiles['compress-files'] || [];
+            files.forEach(file => formData.append('files', file));
+            await submitForm('/api/compress', formData, 'compress-results');
+        });
+
+        document.getElementById('split-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const files = currentFiles['split-files'] || [];
+            files.forEach(file => formData.append('files', file));
+            await submitForm('/api/split', formData, 'split-results');
+        });
+
+        document.getElementById('pdf-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const files = currentFiles['pdf-files'] || [];
+            files.forEach(file => formData.append('files', file));
+            await submitForm('/api/pdf-split', formData, 'pdf-results');
+        });
+
+        // Chain management
+        function addChainStep() {
+            chainStepCount++;
+            const stepsContainer = document.getElementById('chain-steps');
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'chain-step';
+            stepDiv.innerHTML = `
+                <div class="step-header">
+                    <div class="step-number">${chainStepCount}</div>
+                    <button type="button" class="remove-step" onclick="removeChainStep(this)">Remove</button>
+                </div>
+                <div class="form-group">
+                    <label>Tool</label>
+                    <select name="tool" onchange="updateStepConfig(this)">
+                        <option value="">Select tool...</option>
+                        <option value="compress">Image Compression</option>
+                        <option value="split">Image Splitting</option>
+                        <option value="pdf-split">PDF to Images</option>
+                    </select>
+                </div>
+                <div class="step-config"></div>
+            `;
+            stepsContainer.appendChild(stepDiv);
+        }
+
+        function removeChainStep(button) {
+            button.closest('.chain-step').remove();
+        }
+
+        function updateStepConfig(select) {
+            const configDiv = select.closest('.chain-step').querySelector('.step-config');
+            const tool = select.value;
+            
+            let configHtml = '';
+            if (tool === 'compress') {
+                configHtml = `
+                    <div class="form-group">
+                        <label>Compression Level</label>
+                        <select name="compressionLevel">
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="extreme">Extreme</option>
+                        </select>
+                    </div>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" name="convertToWebP">
+                            <label>Convert to WebP</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" name="grayscale">
+                            <label>Grayscale</label>
+                        </div>
+                    </div>
+                `;
+            } else if (tool === 'split') {
+                configHtml = `
+                    <div class="form-group">
+                        <label>Number of Parts</label>
+                        <input type="number" name="parts" value="6" min="2" max="20">
+                    </div>
+                    <div class="form-group">
+                        <label>Top Offset</label>
+                        <input type="number" name="topOffset" value="0" min="0">
+                    </div>
+                `;
+            } else if (tool === 'pdf-split') {
+                configHtml = `
+                    <div class="form-group">
+                        <label>Format</label>
+                        <select name="format">
+                            <option value="png">PNG</option>
+                            <option value="jpeg">JPEG</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>DPI Scale</label>
+                        <input type="number" name="scale" value="150" min="50" max="300">
+                    </div>
+                `;
+            }
+            configDiv.innerHTML = configHtml;
+        }
+
+        async function saveChain() {
+            const chainName = document.getElementById('chain-name').value;
+            const steps = [];
+            
+            document.querySelectorAll('.chain-step').forEach((step, index) => {
+                const tool = step.querySelector('select[name="tool"]').value;
+                if (!tool) return;
+                
+                const config = {};
+                const configDiv = step.querySelector('.step-config');
+                
+                configDiv.querySelectorAll('input, select').forEach(input => {
+                    if (input.type === 'checkbox') {
+                        config[input.name] = input.checked;
+                    } else {
+                        config[input.name] = input.value;
+                    }
+                });
+                
+                steps.push({ tool, config });
+            });
+            
+            if (!chainName || steps.length === 0) {
+                alert('Please enter a chain name and add at least one step');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/chains', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: chainName, steps })
+                });
+                
+                if (response.ok) {
+                    alert('Chain saved successfully!');
+                    loadChains();
+                    document.getElementById('chain-name').value = '';
+                    document.getElementById('chain-steps').innerHTML = '';
+                    chainStepCount = 0;
+                } else {
+                    alert('Failed to save chain');
+                }
+            } catch (error) {
+                alert('Error saving chain: ' + error.message);
+            }
+        }
+
+        async function loadChains() {
+            try {
+                const response = await fetch('/api/chains');
+                const chains = await response.json();
+                
+                const chainsList = document.getElementById('chains-list');
+                const chainSelect = document.getElementById('chain-select');
+                
+                chainsList.innerHTML = '';
+                chainSelect.innerHTML = '<option value="">Select a chain...</option>';
+                
+                chains.forEach(chain => {
+                    // Add to chains list
+                    const chainDiv = document.createElement('div');
+                    chainDiv.className = 'job-item';
+                    chainDiv.innerHTML = `
+                        <div class="job-info">
+                            <h4>${chain.name}</h4>
+                            <div class="job-meta">${chain.steps.length} steps</div>
+                        </div>
+                    `;
+                    chainsList.appendChild(chainDiv);
+                    
+                    // Add to select dropdown
+                    const option = document.createElement('option');
+                    option.value = chain.id;
+                    option.textContent = chain.name;
+                    chainSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading chains:', error);
+            }
+        }
+
+        document.getElementById('chain-execute-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const chainId = document.getElementById('chain-select').value;
+            if (!chainId) {
+                alert('Please select a chain');
+                return;
+            }
+            
+            const formData = new FormData();
+            const files = currentFiles['chain-files'] || [];
+            files.forEach(file => formData.append('files', file));
+            
+            const resultElement = document.getElementById('chain-results');
+            resultElement.innerHTML = '<div class="loading"><div class="spinner"></div><p>Executing chain...</p></div>';
+            
+            try {
+                const response = await fetch(`/api/chains/${chainId}/execute`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Chain execution failed');
+                }
+                
+                let html = `<h3>Chain executed successfully! Execution ID: ${result.executionId}</h3>`;
+                result.results.forEach((stepResult, index) => {
+                    html += `<div class="result-item result-success">`;
+                    html += `<h4>Step ${index + 1}: ${stepResult.tool}</h4>`;
+                    stepResult.results.forEach(item => {
+                        html += `<p>${item.original} - ${item.success ? '✅' : '❌'}</p>`;
+                    });
+                    html += '</div>';
+                });
+                
+                resultElement.innerHTML = html;
+            } catch (error) {
+                resultElement.innerHTML = `<div class="result-item result-error">Error: ${error.message}</div>`;
+            }
+        });
+
+        // Jobs management
+        async function loadJobs() {
+            try {
+                const response = await fetch('/api/jobs');
+                const jobs = await response.json();
+                
+                const jobsList = document.getElementById('jobs-list');
+                jobsList.innerHTML = '';
+                
+                jobs.forEach(job => {
+                    const jobDiv = document.createElement('div');
+                    jobDiv.className = 'job-item';
+                    jobDiv.onclick = () => showJobDetails(job.id);
+                    jobDiv.innerHTML = `
+                        <div class="job-info">
+                            <h4>${job.type.charAt(0).toUpperCase() + job.type.slice(1)} Job</h4>
+                            <div class="job-meta">
+                                Created: ${new Date(job.created_at).toLocaleString()}
+                                ${job.completed_at ? ` | Completed: ${new Date(job.completed_at).toLocaleString()}` : ''}
+                            </div>
+                        </div>
+                        <div class="job-status status-${job.status}">${job.status}</div>
+                    `;
+                    jobsList.appendChild(jobDiv);
+                });
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+            }
+        }
+
+        async function showJobDetails(jobId) {
+            try {
+                const response = await fetch(`/api/jobs/${jobId}`);
+                const job = await response.json();
+                
+                let html = `
+                    <h2>${job.type.charAt(0).toUpperCase() + job.type.slice(1)} Job Details</h2>
+                    <p><strong>Job ID:</strong> ${job.id}</p>
+                    <p><strong>Status:</strong> ${job.status}</p>
+                    <p><strong>Created:</strong> ${new Date(job.created_at).toLocaleString()}</p>
+                    ${job.completed_at ? `<p><strong>Completed:</strong> ${new Date(job.completed_at).toLocaleString()}</p>` : ''}
+                    ${job.error_message ? `<p><strong>Error:</strong> ${job.error_message}</p>` : ''}
+                    
+                    <h3>Configuration</h3>
+                    <pre>${JSON.stringify(job.config, null, 2)}</pre>
+                    
+                    <h3>Files</h3>
+                `;
+                
+                const inputFiles = job.files.filter(f => f.type === 'input');
+                const outputFiles = job.files.filter(f => f.type === 'output');
+                
+                if (inputFiles.length > 0) {
+                    html += '<h4>Input Files</h4><ul>';
+                    inputFiles.forEach(file => {
+                        html += `<li>${file.original_name} (${formatFileSize(file.size)})</li>`;
+                    });
+                    html += '</ul>';
+                }
+                
+                if (outputFiles.length > 0) {
+                    html += '<h4>Output Files</h4><div class="download-links">';
+                    outputFiles.forEach(file => {
+                        html += `<a href="/api/download/${job.id}/${file.original_name}" class="download-link">${file.original_name}</a>`;
+                    });
+                    html += '</div>';
+                }
+                
+                document.getElementById('job-details').innerHTML = html;
+                document.getElementById('job-modal').style.display = 'block';
+            } catch (error) {
+                alert('Error loading job details: ' + error.message);
+            }
+        }
+
+        function closeJobModal() {
+            document.getElementById('job-modal').style.display = 'none';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupFileInput('compress-files', 'compress-file-list', ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff', '.avif']);
+            setupFileInput('split-files', 'split-file-list', ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff']);
+            setupFileInput('pdf-files', 'pdf-file-list', ['.pdf']);
+            setupFileInput('chain-files', 'chain-file-list', ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff', '.pdf']);
+            
+            loadJobs();
+            loadChains();
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('job-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

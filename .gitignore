@@ -15,12 +15,13 @@ yarn.lock
 
 # Input directories
 input/
-
+data/
 # Output directories
 output/
 dist/
 build/
-
+outputs/
+uploads/
 # Source image files (optional, uncomment if you don't want to track source images)
 # src/
 
