@@ -1,7 +1,7 @@
 {
   "name": "image-utils",
   "version": "1.0.0",
-  "main": "src/compressor.js",
+  "main": "electron/main.js",
   "type": "module",
   "bin": {
     "image-compress": "./bin/compress.js",
@@ -23,9 +23,15 @@
     "mcp:test": "node test-mcp-full.js",
     "web": "node src/web-server.js",
     "start": "node src/web-server.js",
+    "desktop:dev": "electron .",
+    "native:deps": "electron-builder install-app-deps",
+    "native:rebuild": "npx electron-rebuild -f -w better-sqlite3 -w sharp",
+    "desktop:pack": "electron-builder --dir",
+    "desktop:dist": "electron-builder",
     "global:install": "npm install -g .",
     "global:uninstall": "npm uninstall -g image-utils",
-    "global:update": "npm uninstall -g image-utils && npm install -g ."
+    "global:update": "npm uninstall -g image-utils && npm install -g .",
+    "postinstall": "electron-builder install-app-deps || true"
   },
   "keywords": [],
   "author": "Shastho Limited <https://github.com/shasthoAI>",
@@ -43,7 +49,45 @@
     "multer": "^2.0.2",
     "node-poppler": "^8.0.1",
     "sharp": "^0.34.2",
-    "sqlite3": "^5.1.7",
+    "better-sqlite3": "^12.2.0",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "electron": "30.5.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "npmRebuild": true,
+    "appId": "com.shastho.imageutils",
+    "productName": "Image Utils",
+    "files": [
+      "**/*",
+      "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/*.map",
+      "!**/test/**"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/sharp/**",
+      "node_modules/better-sqlite3/**",
+      "node_modules/node-poppler/**"
+    ],
+    "extraResources": [
+      { "from": "public", "to": "public" },
+      { "from": "data", "to": "data" },
+      { "from": "uploads", "to": "uploads" },
+      { "from": "outputs", "to": "outputs" }
+    ],
+    "mac": {
+      "category": "public.app-category.photography",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "zip"]
+    },
+    "linux": {
+      "target": ["AppImage", "deb", "rpm"],
+      "category": "Graphics"
+    }
   }
 }

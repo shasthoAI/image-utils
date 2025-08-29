@@ -12,16 +12,19 @@ import { convertPdfToImages } from './pdf_splitter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = process.env.PORT || 3000;
+const DEFAULT_PORT = process.env.PORT || 3000;
+
+// Resolve writable base directory (works in Electron packaged app)
+const BASE_DIR = process.env.IMAGE_UTILS_DATA_DIR || process.cwd();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// Ensure upload directories exist
-const uploadsDir = path.resolve(process.cwd(), 'uploads');
-const outputsDir = path.resolve(process.cwd(), 'outputs');
+// Ensure upload directories exist under a writable base
+const uploadsDir = path.resolve(BASE_DIR, 'uploads');
+const outputsDir = path.resolve(BASE_DIR, 'outputs');
 [uploadsDir, outputsDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -169,11 +172,20 @@ app.post('/api/compress', upload.array('files'), async (req, res) => {
         if (success) {
           const stats = fs.statSync(outputPath);
           await addFileRecord(jobId, 'output', path.basename(outputPath), outputPath, stats.size, file.mimetype);
-          results.push({
-            original: file.originalname,
-            compressed: path.basename(outputPath),
-            success: true
-          });
+            const originalKB = (file.size / 1024).toFixed(2);
+            const compressedKB = (stats.size / 1024).toFixed(2);
+            const ratio = (((file.size - stats.size) / file.size) * 100).toFixed(1);
+            results.push({
+              original: file.originalname,
+              compressed: path.basename(outputPath),
+              success: true,
+              originalUrl: `/uploads/${path.basename(file.path)}`,
+              compressedUrl: `/api/download/${jobId}/${path.basename(outputPath)}`,
+              compressedViewUrl: `/outputs/${path.basename(outputPath)}`,
+              originalSizeKB: originalKB,
+              compressedSizeKB: compressedKB,
+              compressionRatio: ratio
+            });
         } else {
           results.push({
             original: file.originalname,
@@ -239,14 +251,22 @@ app.post('/api/split', upload.array('files'), async (req, res) => {
           .filter(f => f.startsWith(baseName))
           .map(f => path.join(jobOutputDir, f));
         
+        const partDetails = [];
         for (const outputFile of outputFiles) {
           const stats = fs.statSync(outputFile);
           await addFileRecord(jobId, 'output', path.basename(outputFile), outputFile, stats.size, file.mimetype);
+          partDetails.push({
+            name: path.basename(outputFile),
+            sizeKB: (stats.size / 1024).toFixed(2),
+            viewUrl: `/outputs/${jobId}/${path.basename(outputFile)}`,
+            downloadUrl: `/api/download/${jobId}/${path.basename(outputFile)}`
+          });
         }
         
         results.push({
           original: file.originalname,
           parts: outputFiles.map(f => path.basename(f)),
+          partDetails,
           success: true
         });
         
@@ -303,20 +323,28 @@ app.post('/api/pdf-split', upload.array('files'), async (req, res) => {
         
         await convertPdfToImages(file.path, jobOutputDir);
         
-        // Record output files
-        const baseName = path.basename(file.originalname, '.pdf');
+        // Record output files (use base from stored path to match poppler output)
+        const baseName = path.basename(file.path, '.pdf');
         const outputFiles = fs.readdirSync(jobOutputDir)
           .filter(f => f.startsWith(baseName))
           .map(f => path.join(jobOutputDir, f));
         
+        const pageDetails = [];
         for (const outputFile of outputFiles) {
           const stats = fs.statSync(outputFile);
           await addFileRecord(jobId, 'output', path.basename(outputFile), outputFile, stats.size, `image/${config.format}`);
+          pageDetails.push({
+            name: path.basename(outputFile),
+            sizeKB: (stats.size / 1024).toFixed(2),
+            viewUrl: `/outputs/${jobId}/${path.basename(outputFile)}`,
+            downloadUrl: `/api/download/${jobId}/${path.basename(outputFile)}`
+          });
         }
         
         results.push({
           original: file.originalname,
           pages: outputFiles.map(f => path.basename(f)),
+          pageDetails,
           success: true
         });
         
@@ -499,10 +527,30 @@ async function executeCompressionStep(files, config, executionId) {
       });
     }
     
+    const originalSize = file.size || (fs.existsSync(file.path) ? fs.statSync(file.path).size : 0);
+    const compressedSize = success && fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0;
+
+    // Build web URLs for compare view
+    let originalViewUrl = '';
+    if (file.path.startsWith(uploadsDir)) {
+      originalViewUrl = `/uploads/${path.basename(file.path)}`;
+    } else if (file.path.startsWith(outputsDir)) {
+      const rel = path.relative(outputsDir, file.path);
+      originalViewUrl = `/outputs/${rel}`;
+    }
+    const compressedViewUrl = success ? `/outputs/${path.basename(outputPath)}` : '';
+
+    const ratio = originalSize ? (((originalSize - compressedSize) / originalSize) * 100).toFixed(1) : '0';
+
     results.push({
       original: file.originalname,
       success,
-      output: success ? path.basename(outputPath) : null
+      output: success ? path.basename(outputPath) : null,
+      originalViewUrl,
+      compressedViewUrl,
+      originalSizeKB: (originalSize / 1024).toFixed(2),
+      compressedSizeKB: (compressedSize / 1024).toFixed(2),
+      compressionRatio: ratio
     });
   }
   
@@ -516,6 +564,7 @@ async function executeCompressionStep(files, config, executionId) {
 async function executeSplitStep(files, config, executionId) {
   const results = [];
   const outputFiles = [];
+  const webFiles = [];
   
   for (const file of files) {
     const baseName = path.basename(file.filename || file.originalname, path.extname(file.filename || file.originalname));
@@ -539,6 +588,9 @@ async function executeSplitStep(files, config, executionId) {
       .map(f => {
         const filePath = path.join(stepOutputDir, f);
         const stats = fs.statSync(filePath);
+        const rel = path.relative(outputsDir, filePath);
+        const viewUrl = `/outputs/${rel}`;
+        webFiles.push({ name: f, sizeKB: (stats.size / 1024).toFixed(2), viewUrl });
         return {
           originalname: f,
           filename: f,
@@ -560,13 +612,15 @@ async function executeSplitStep(files, config, executionId) {
   return {
     tool: 'split',
     results,
-    outputFiles
+    outputFiles,
+    webFiles
   };
 }
 
 async function executePdfSplitStep(files, config, executionId) {
   const results = [];
   const outputFiles = [];
+  const webFiles = [];
   
   for (const file of files) {
     if (path.extname(file.filename || file.originalname).toLowerCase() !== '.pdf') {
@@ -586,12 +640,15 @@ async function executePdfSplitStep(files, config, executionId) {
     
     await convertPdfToImages(file.path, stepOutputDir);
     
-    const baseName = path.basename(file.filename || file.originalname, '.pdf');
+    const baseName = path.basename(file.path, '.pdf');
     const pdfFiles = fs.readdirSync(stepOutputDir)
       .filter(f => f.startsWith(baseName))
       .map(f => {
         const filePath = path.join(stepOutputDir, f);
         const stats = fs.statSync(filePath);
+        const rel = path.relative(outputsDir, filePath);
+        const viewUrl = `/outputs/${rel}`;
+        webFiles.push({ name: f, sizeKB: (stats.size / 1024).toFixed(2), viewUrl });
         return {
           originalname: f,
           filename: f,
@@ -613,7 +670,8 @@ async function executePdfSplitStep(files, config, executionId) {
   return {
     tool: 'pdf-split',
     results,
-    outputFiles
+    outputFiles,
+    webFiles
   };
 }
 
@@ -626,9 +684,29 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Image Tools Web Server running on http://localhost:${PORT}`);
-});
+// Helper to start server (used by Electron or CLI)
+export function startServer(port = DEFAULT_PORT) {
+  return new Promise((resolve, reject) => {
+    try {
+      const server = app.listen(port, () => {
+        const address = server.address();
+        const actualPort = typeof address === 'object' && address ? address.port : port;
+        console.log(`Image Tools Web Server running on http://localhost:${actualPort}`);
+        resolve({ server, port: actualPort });
+      });
+      server.on('error', (err) => reject(err));
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+// If executed directly, start the server
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  startServer(DEFAULT_PORT).catch((err) => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  });
+}
 
 export default app;

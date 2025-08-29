@@ -91,6 +91,15 @@ To use the CLI tools from anywhere on your computer:
     image-split screenshot.png --parts 4
     ```
 
+### Desktop App
+
+Run the cross‑platform desktop app built with Electron:
+
+- Dev run: `npm run desktop:dev`
+- Build installers: `npm run desktop:dist`
+
+See `DESKTOP.md` for prerequisites (Node 18+, Poppler) and troubleshooting.
+
 ## CLI Usage
 
 Once installed globally, you can use these commands from any folder:

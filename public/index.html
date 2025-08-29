@@ -422,6 +422,21 @@
         .download-link:hover {
             background: #5a67d8;
         }
+
+        /* Image compare slider */
+        .compare { position: relative; display: inline-block; max-width: 100%; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); margin-top: 10px; }
+        .compare img { display: block; width: auto; height: 100%; user-select: none; pointer-events: none; }
+        .compare .top { position: absolute; top: 0; left: 0; width: 50%; height: 100%; overflow: hidden; }
+        .compare .handle { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #667eea; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); cursor: ew-resize; }
+        .compare .handle::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 18px; height: 18px; border-radius: 50%; background: #667eea; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        .compare .label { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .compare .label.right { left: auto; right: 10px; }
+        /* Grid of outputs */
+        .thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-top: 12px; }
+        .thumb-card { background: #fff; border: 1px solid #eee; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .thumb-card img { width: 100%; height: 120px; object-fit: cover; display: block; }
+        .thumb-meta { padding: 8px 10px; font-size: 12px; color: #555; display: flex; justify-content: space-between; align-items: center; }
+        .thumb-meta a { font-size: 12px; }
     </style>
 </head>
 <body>
@@ -736,21 +751,54 @@
                 if (item.success) {
                     if (item.compressed) {
                         html += `<p>✅ Compressed: ${item.compressed}</p>`;
-                        html += `<div class="download-links"><a href="/api/download/${result.jobId}/${item.compressed}" class="download-link">Download</a></div>`;
+                        const viewUrl = item.compressedViewUrl || item.compressedUrl;
+                        if (item.originalUrl && viewUrl) {
+                            const cid = Math.random().toString(36).slice(2);
+                            html += `
+                              <div class="compare" id="compare-${cid}">
+                                <img src="${item.originalUrl}" alt="Original">
+                                <div class="top"><img src="${viewUrl}" alt="Compressed"></div>
+                                <div class="handle"></div>
+                                <span class="label">Original</span>
+                                <span class="label right">Compressed</span>
+                              </div>`;
+                        }
+                        const meta = (item.originalSizeKB && item.compressedSizeKB) ? `<div style="margin-top:8px;color:#555;font-size:0.9rem">Original: ${item.originalSizeKB} KB · Compressed: ${item.compressedSizeKB} KB · Saved: ${item.compressionRatio}%</div>` : '';
+                        html += meta + `<div class="download-links"><a href="/api/download/${result.jobId}/${item.compressed}" class="download-link">Download</a></div>`;
                     } else if (item.parts) {
                         html += `<p>✅ Split into ${item.parts.length} parts</p>`;
-                        html += '<div class="download-links">';
-                        item.parts.forEach(part => {
-                            html += `<a href="/api/download/${result.jobId}/${part}" class="download-link">${part}</a>`;
-                        });
-                        html += '</div>';
+                        if (item.partDetails && item.partDetails.length) {
+                          html += '<div class="thumb-grid">';
+                          item.partDetails.forEach(p => {
+                            html += `<div class="thumb-card">`+
+                                    `<img src="${p.viewUrl}" alt="${p.name}">`+
+                                    `<div class="thumb-meta"><span>${p.sizeKB} KB</span>`+
+                                    `<a href="${p.downloadUrl}" class="download-link" style="padding:4px 8px">Download</a></div>`+
+                                   `</div>`;
+                          });
+                          html += '</div>';
+                        } else {
+                          html += '<div class="download-links">';
+                          item.parts.forEach(part => { html += `<a href="/api/download/${result.jobId}/${part}" class="download-link">${part}</a>`; });
+                          html += '</div>';
+                        }
                     } else if (item.pages) {
                         html += `<p>✅ Converted to ${item.pages.length} images</p>`;
-                        html += '<div class="download-links">';
-                        item.pages.forEach(page => {
-                            html += `<a href="/api/download/${result.jobId}/${page}" class="download-link">${page}</a>`;
-                        });
-                        html += '</div>';
+                        if (item.pageDetails && item.pageDetails.length) {
+                          html += '<div class="thumb-grid">';
+                          item.pageDetails.forEach(p => {
+                            html += `<div class="thumb-card">`+
+                                    `<img src="${p.viewUrl}" alt="${p.name}">`+
+                                    `<div class="thumb-meta"><span>${p.sizeKB} KB</span>`+
+                                    `<a href="${p.downloadUrl}" class="download-link" style="padding:4px 8px">Download</a></div>`+
+                                   `</div>`;
+                          });
+                          html += '</div>';
+                        } else {
+                          html += '<div class="download-links">';
+                          item.pages.forEach(page => { html += `<a href="/api/download/${result.jobId}/${page}" class="download-link">${page}</a>`; });
+                          html += '</div>';
+                        }
                     }
                 } else {
                     html += `<p>❌ ${item.error}</p>`;
@@ -760,6 +808,42 @@
             });
             
             element.innerHTML = html;
+            // Initialize compare sliders for any newly inserted elements
+            document.querySelectorAll('.compare').forEach(initCompare);
+        }
+
+        // Robust drag-based compare slider
+        function initCompare(container){
+            const top = container.querySelector('.top');
+            const handle = container.querySelector('.handle');
+            if (!top || !handle) return;
+            const setPos = (clientX) => {
+                const rect = container.getBoundingClientRect();
+                let pct = (clientX - rect.left) / rect.width;
+                if (isNaN(pct)) return;
+                pct = Math.max(0, Math.min(1, pct));
+                const p = (pct * 100) + '%';
+                top.style.width = p;
+                handle.style.left = p;
+            };
+            const start = (e) => {
+                e.preventDefault();
+                const move = (ev) => setPos((ev.touches ? ev.touches[0] : ev).clientX);
+                const stop = () => {
+                    window.removeEventListener('mousemove', move);
+                    window.removeEventListener('touchmove', move);
+                    window.removeEventListener('mouseup', stop);
+                    window.removeEventListener('touchend', stop);
+                };
+                window.addEventListener('mousemove', move);
+                window.addEventListener('touchmove', move, { passive: false });
+                window.addEventListener('mouseup', stop);
+                window.addEventListener('touchend', stop);
+                move(e);
+            };
+            handle.addEventListener('mousedown', start);
+            handle.addEventListener('touchstart', start, { passive: false });
+            container.addEventListener('click', (e) => setPos((e.touches ? e.touches[0] : e).clientX));
         }
 
         // Form submissions
@@ -984,13 +1068,51 @@
                 result.results.forEach((stepResult, index) => {
                     html += `<div class="result-item result-success">`;
                     html += `<h4>Step ${index + 1}: ${stepResult.tool}</h4>`;
-                    stepResult.results.forEach(item => {
-                        html += `<p>${item.original} - ${item.success ? '✅' : '❌'}</p>`;
-                    });
+
+                    if (stepResult.tool === 'compress') {
+                        stepResult.results.forEach(item => {
+                            if (item.success && item.originalViewUrl && item.compressedViewUrl) {
+                                const cid = Math.random().toString(36).slice(2);
+                                html += `
+                                  <div class="compare" id="compare-${cid}">
+                                    <img src="${item.originalViewUrl}" alt="Original">
+                                    <div class="top"><img src="${item.compressedViewUrl}" alt="Compressed"></div>
+                                    <div class="handle"></div>
+                                    <span class="label">Original</span>
+                                    <span class="label right">Compressed</span>
+                                  </div>
+                                  <div style="margin-top:8px;color:#555;font-size:0.9rem">Original: ${item.originalSizeKB} KB · Compressed: ${item.compressedSizeKB} KB · Saved: ${item.compressionRatio}%</div>`;
+                            } else {
+                                html += `<p>${item.original} - ${item.success ? '✅' : '❌'}</p>`;
+                            }
+                        });
+                    } else if (stepResult.tool === 'split' || stepResult.tool === 'pdf-split') {
+                        if (stepResult.webFiles && stepResult.webFiles.length) {
+                            html += '<div class="thumb-grid">';
+                            stepResult.webFiles.forEach(p => {
+                                html += `<div class="thumb-card">`+
+                                        `<img src="${p.viewUrl}" alt="${p.name}">`+
+                                        `<div class="thumb-meta"><span>${p.sizeKB} KB</span>`+
+                                        `</div>`+
+                                       `</div>`;
+                            });
+                            html += '</div>';
+                        } else {
+                            stepResult.results.forEach(item => {
+                                html += `<p>${item.original} - ${item.success ? '✅' : '❌'}</p>`;
+                            });
+                        }
+                    } else {
+                        stepResult.results.forEach(item => {
+                            html += `<p>${item.original} - ${item.success ? '✅' : '❌'}</p>`;
+                        });
+                    }
+
                     html += '</div>';
                 });
                 
                 resultElement.innerHTML = html;
+                document.querySelectorAll('.compare').forEach(initCompare);
             } catch (error) {
                 resultElement.innerHTML = `<div class="result-item result-error">Error: ${error.message}</div>`;
             }
