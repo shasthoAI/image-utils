@@ -180,20 +180,26 @@ app.post('/api/compress', upload.array('files'), async (req, res) => {
         const ext = path.extname(file.originalname).toLowerCase();
         
         const success = await compressImageFile(file.path, outputPath, ext);
+        // Determine the actual output path (handles WebP conversion, case-insensitive)
+        const parsedOut = path.parse(outputPath);
+        const finalOutputPath = (config.convertToWebP)
+          ? path.join(parsedOut.dir, `${parsedOut.name}.webp`)
+          : outputPath;
+        const finalMime = (config.convertToWebP && ext) ? 'image/webp' : file.mimetype;
         
         if (success) {
-          const stats = fs.statSync(outputPath);
-          await addFileRecord(jobId, 'output', path.basename(outputPath), outputPath, stats.size, file.mimetype);
+          const stats = fs.statSync(finalOutputPath);
+          await addFileRecord(jobId, 'output', path.basename(finalOutputPath), finalOutputPath, stats.size, finalMime);
             const originalKB = (file.size / 1024).toFixed(2);
             const compressedKB = (stats.size / 1024).toFixed(2);
             const ratio = (((file.size - stats.size) / file.size) * 100).toFixed(1);
             results.push({
               original: file.originalname,
-              compressed: path.basename(outputPath),
+              compressed: path.basename(finalOutputPath),
               success: true,
               originalUrl: `/uploads/${path.basename(file.path)}`,
-              compressedUrl: `/api/download/${jobId}/${path.basename(outputPath)}`,
-              compressedViewUrl: `/outputs/${path.basename(outputPath)}`,
+              compressedUrl: `/api/download/${jobId}/${path.basename(finalOutputPath)}`,
+              compressedViewUrl: `/outputs/${path.basename(finalOutputPath)}`,
               originalSizeKB: originalKB,
               compressedSizeKB: compressedKB,
               compressionRatio: ratio
@@ -387,7 +393,7 @@ app.get('/api/download/:jobId/:filename', (req, res) => {
   
   // Check if file exists in job outputs
   db.get(
-    'SELECT path FROM files WHERE job_id = ? AND type = "output" AND path LIKE ?',
+    "SELECT path FROM files WHERE job_id = ? AND type = 'output' AND path LIKE ?",
     [jobId, `%${filename}`],
     (err, file) => {
       if (err) {
@@ -634,20 +640,25 @@ async function executeCompressionStep(files, config, executionId) {
     const ext = path.extname(file.filename || file.originalname).toLowerCase();
     
     const success = await compressImageFile(file.path, outputPath, ext);
+    // Determine actual output path (handles WebP conversion, case-insensitive)
+    const parsedOut = path.parse(outputPath);
+    const finalOutputPath = (config.convertToWebP)
+      ? path.join(parsedOut.dir, `${parsedOut.name}.webp`)
+      : outputPath;
     
-    if (success && fs.existsSync(outputPath)) {
-      const stats = fs.statSync(outputPath);
+    if (success && fs.existsSync(finalOutputPath)) {
+      const stats = fs.statSync(finalOutputPath);
       outputFiles.push({
-        originalname: path.basename(outputPath),
-        filename: path.basename(outputPath),
-        path: outputPath,
+        originalname: path.basename(finalOutputPath),
+        filename: path.basename(finalOutputPath),
+        path: finalOutputPath,
         size: stats.size,
         mimetype: file.mimetype
       });
     }
     
     const originalSize = file.size || (fs.existsSync(file.path) ? fs.statSync(file.path).size : 0);
-    const compressedSize = success && fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0;
+    const compressedSize = success && fs.existsSync(finalOutputPath) ? fs.statSync(finalOutputPath).size : 0;
 
     // Build web URLs for compare view
     let originalViewUrl = '';
@@ -657,7 +668,7 @@ async function executeCompressionStep(files, config, executionId) {
       const rel = path.relative(outputsDir, file.path);
       originalViewUrl = `/outputs/${rel}`;
     }
-    const fname = path.basename(outputPath);
+    const fname = path.basename(finalOutputPath);
     const compressedViewUrl = success ? `/outputs/${fname}` : '';
     const compressedDownloadUrl = success ? `/api/chain-executions/${executionId}/download/${fname}` : '';
 
@@ -666,7 +677,7 @@ async function executeCompressionStep(files, config, executionId) {
     results.push({
       original: file.originalname,
       success,
-      output: success ? path.basename(outputPath) : null,
+      output: success ? path.basename(finalOutputPath) : null,
       originalViewUrl,
       compressedViewUrl,
       compressedDownloadUrl,

@@ -180,7 +180,11 @@ export const compressImageFile = async (inputPath, outputPath, ext) => {
     // Second pass for additional optimisation / format conversion
     const secondPipeline = sharp(tempPath1).withMetadata(false);
     const finalExt = convertToWebP ? '.webp' : ext;
-    const finalOutputPath = convertToWebP ? outputPath.replace(ext, '.webp') : outputPath;
+    // Build final output path robustly regardless of original extension casing
+    const parsedOut = path.parse(outputPath);
+    const finalOutputPath = convertToWebP
+      ? path.join(parsedOut.dir, `${parsedOut.name}.webp`)
+      : outputPath;
 
     if (convertToWebP) {
       await secondPipeline
