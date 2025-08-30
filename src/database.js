@@ -225,6 +225,10 @@ try {
           const rows = [...data.tool_chains].sort((a,b)=> (a.created_at < b.created_at ? 1 : -1));
           cb && cb(null, rows); return;
         }
+        if (s.startsWith('select * from chain_executions order by')) {
+          const rows = [...data.chain_executions].sort((a,b)=> (a.created_at < b.created_at ? 1 : -1));
+          cb && cb(null, rows); return;
+        }
         cb && cb(null, []);
       } catch (err) { cb && cb(err); }
     }

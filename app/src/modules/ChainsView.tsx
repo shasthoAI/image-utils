@@ -21,6 +21,8 @@ export const ChainsView: React.FC = () => {
   const pollRef = React.useRef<any>(null);
   const [chainName, setChainName] = React.useState("");
   const [steps, setSteps] = React.useState<ChainStep[]>([]);
+  const [executions, setExecutions] = React.useState<any[]>([]);
+  const [execDetails, setExecDetails] = React.useState<Record<string, any>>({});
 
   React.useEffect(() => {
     const ac = new AbortController();
@@ -37,6 +39,18 @@ export const ChainsView: React.FC = () => {
       }
     })();
     return () => ac.abort();
+  }, []);
+
+  React.useEffect(() => {
+    const loadExecs = async () => {
+      try {
+        const r = await fetch('/api/chain-executions');
+        if (!r.ok) return;
+        const j = await r.json();
+        setExecutions(j);
+      } catch {}
+    };
+    loadExecs();
   }, []);
 
   const run = async () => {
@@ -226,7 +240,48 @@ export const ChainsView: React.FC = () => {
           <pre className="text-xs whitespace-pre-wrap bg-gray-50 p-3 rounded border overflow-auto max-h-96">{JSON.stringify(result, null, 2)}</pre>
         </Section>
       )}
+
+      <Section
+        title="Chain History"
+        description={`${executions.length} executions`}
+        actions={
+          <Button size="sm" variant="outline" onClick={async () => {
+            try {
+              const j = await (await fetch('/api/chain-executions')).json();
+              setExecutions(j);
+            } catch {}
+          }}>Refresh</Button>
+        }
+      >
+        <div className="space-y-3">
+          {executions.length === 0 && (
+            <Card><CardContent className="p-6 text-sm text-muted-foreground">No executions yet.</CardContent></Card>
+          )}
+          {executions.map((e: any) => (
+            <Card key={e.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">{e.chain_name || e.chain_id}</CardTitle>
+                  <div className="text-sm text-muted-foreground">{new Date(e.created_at).toLocaleString()} • {e.status}</div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    try {
+                      const d = await (await fetch(`/api/chain-executions/${e.id}`)).json();
+                      setExecDetails((p) => ({ ...p, [e.id]: d }));
+                    } catch {}
+                  }}>View Details</Button>
+                </div>
+                {execDetails[e.id] && (
+                  <pre className="mt-3 text-xs whitespace-pre-wrap bg-gray-50 p-3 rounded border overflow-auto max-h-80">{JSON.stringify(execDetails[e.id], null, 2)}</pre>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </Section>
     </div>
   );
 };
-

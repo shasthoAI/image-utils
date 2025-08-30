@@ -122,11 +122,52 @@ export const JobsView: React.FC = () => {
                     variant="outline"
                     onClick={async () => {
                       try {
-                        const id = c.chain_execution_id || c.id;
-                        const r = await fetch(`/api/chain-executions/${id}`);
+                        // Jobs are not chain executions; fetch job details and adapt to step-style UI
+                        const r = await fetch(`/api/jobs/${c.id}`);
                         if (!r.ok) return;
                         const data = await r.json();
-                        setChainDetails((d) => ({ ...d, [c.id]: data }));
+
+                        const inputs = (data.files || []).filter((f: any) => f.type === 'input');
+                        const outputs = (data.files || []).filter((f: any) => f.type === 'output');
+
+                        const toKB = (n: number | undefined) => (n != null ? (n / 1024).toFixed(2) : undefined);
+
+                        let step: any = { tool: c.type, results: [], webFiles: [] };
+
+                        if (c.type === 'compress') {
+                          // Map outputs to inputs by filename base (ignoring jobId_ prefix and extension)
+                          const inputByBase: Record<string, any> = {};
+                          inputs.forEach((f: any) => {
+                            const name = String(f.original_name);
+                            const base = name.replace(/\.[^.]+$/, '');
+                            inputByBase[base] = f;
+                          });
+                          outputs.forEach((of: any) => {
+                            const oname: string = of.original_name; // already basename
+                            const stripped = oname.replace(/^.*?_/, '').replace(/\.[^.]+$/, '');
+                            const inf = inputByBase[stripped] || inputs[0];
+                            step.results.push({
+                              original: inf?.original_name,
+                              success: true,
+                              originalViewUrl: inf ? `/uploads/${inf.path.split('/').pop()}` : undefined,
+                              compressedViewUrl: `/outputs/${of.original_name}`,
+                              compressedDownloadUrl: `/api/download/${c.id}/${of.original_name}`,
+                              originalSizeKB: toKB(inf?.size),
+                              compressedSizeKB: toKB(of.size),
+                              compressionRatio: inf && of?.size ? (((inf.size - of.size) / inf.size) * 100).toFixed(1) : undefined,
+                            });
+                          });
+                        } else if (c.type === 'split' || c.type === 'pdf-split') {
+                          // Show outputs as grid items
+                          step.webFiles = outputs.map((of: any) => ({
+                            name: of.original_name,
+                            sizeKB: toKB(of.size),
+                            viewUrl: `/outputs/${c.id}/${of.original_name}`,
+                            downloadUrl: `/api/download/${c.id}/${of.original_name}`,
+                          }));
+                        }
+
+                        setChainDetails((d) => ({ ...d, [c.id]: { id: c.id, results: [step] } }));
                       } catch {}
                     }}
                     className="gap-2"
@@ -202,4 +243,3 @@ export const JobsView: React.FC = () => {
     </div>
   );
 };
-
