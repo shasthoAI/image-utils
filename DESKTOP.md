@@ -7,13 +7,19 @@ Prereqs
 
 Install
 1. npm install
-2. If native deps need rebuild: npx electron-builder install-app-deps
+2. Build the new React UI: npm run app:build (dev: npm run app:dev)
+3. If native deps need rebuild: npx electron-builder install-app-deps
 
 Run (dev)
-- npm run desktop:dev
+- UI + API (browser): npm run dev
+  - runs API at :3000 with auto-restart (nodemon)
+  - runs UI at :5173 with Vite HMR and proxies /api,/uploads,/outputs
+- Desktop with live UI: npm run dev:desktop
+  - starts API + Vite
+  - launches Electron pointed at UI_DEV_URL (Vite), while API stays on :3000
 
 Build Installers
-- macOS: npm run desktop:dist (creates .dmg in dist/)
+- macOS/Win/Linux: npm run desktop:dist (builds UI then packages Electron)
 - Windows: npm run desktop:dist (creates .exe/.msi depending on target)
 - Linux: npm run desktop:dist (AppImage/deb/rpm in dist/)
 

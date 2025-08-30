@@ -20,7 +20,19 @@ const BASE_DIR = process.env.IMAGE_UTILS_DATA_DIR || process.cwd();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// Check for built React UI
+const uiDist = path.resolve(process.cwd(), 'app', 'dist');
+const publicFallback = path.join(__dirname, '..', 'public');
+
+if (fs.existsSync(uiDist)) {
+  console.log(`🎯 Serving React UI from: ${uiDist}`);
+  app.use(express.static(uiDist));
+} else {
+  console.warn(`⚠️  React UI not built. Run 'npm run build' first.`);
+  console.log(`📁 Falling back to: ${publicFallback}`);
+  app.use(express.static(publicFallback));
+}
 
 // Ensure upload directories exist under a writable base
 const uploadsDir = path.resolve(BASE_DIR, 'uploads');
@@ -504,6 +516,113 @@ app.post('/api/chains/:id/execute', upload.array('files'), async (req, res) => {
   }
 });
 
+// Execute tool chain (async with progress)
+app.post('/api/chains/:id/execute-async', upload.array('files'), async (req, res) => {
+  try {
+    const chainId = req.params.id;
+    db.get('SELECT * FROM tool_chains WHERE id = ?', [chainId], async (err, chain) => {
+      if (err) { res.status(500).json({ error: err.message }); return; }
+      if (!chain) { res.status(404).json({ error: 'Chain not found' }); return; }
+      const steps = JSON.parse(chain.steps);
+      const executionId = uuidv4();
+
+      db.run(
+        'INSERT INTO chain_executions (id, chain_id, input_files) VALUES (?, ?, ?)',
+        [executionId, chainId, JSON.stringify(req.files.map(f => f.originalname))],
+        async () => {
+          // mark running
+          db.run('UPDATE chain_executions SET status = ?, updated_at = ? WHERE id = ?', ['running', new Date().toISOString(), executionId]);
+          // respond immediately with id + step count
+          res.status(202).json({ executionId, stepCount: steps.length });
+
+          // run in background
+          let currentFiles = req.files;
+          const results = [];
+          try {
+            for (let i = 0; i < steps.length; i++) {
+              const step = steps[i];
+              db.run('UPDATE chain_executions SET current_step = ?, updated_at = ? WHERE id = ?', [i, new Date().toISOString(), executionId]);
+              let stepResult;
+              if (step.tool === 'compress') {
+                stepResult = await executeCompressionStep(currentFiles, step.config || {}, executionId);
+              } else if (step.tool === 'split') {
+                stepResult = await executeSplitStep(currentFiles, step.config || {}, executionId);
+              } else if (step.tool === 'pdf-split') {
+                stepResult = await executePdfSplitStep(currentFiles, step.config || {}, executionId);
+              }
+              results.push(stepResult);
+              if (stepResult.outputFiles) currentFiles = stepResult.outputFiles;
+            }
+            db.run(
+              'UPDATE chain_executions SET status = "completed", output_files = ?, updated_at = ? WHERE id = ?',
+              [JSON.stringify(results), new Date().toISOString(), executionId]
+            );
+          } catch (error) {
+            db.run('UPDATE chain_executions SET status = "failed", updated_at = ? WHERE id = ?', [new Date().toISOString(), executionId]);
+          }
+        }
+      );
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Chain execution status
+app.get('/api/chain-executions/:id', (req, res) => {
+  const id = req.params.id;
+  db.get('SELECT * FROM chain_executions WHERE id = ?', [id], (err, row) => {
+    if (err) { res.status(500).json({ error: err.message }); return; }
+    if (!row) { res.status(404).json({ error: 'Execution not found' }); return; }
+    let output = null; try { output = row.output_files ? JSON.parse(row.output_files) : null; } catch {}
+    res.json({
+      id: row.id,
+      chain_id: row.chain_id,
+      status: row.status,
+      current_step: row.current_step,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      results: output,
+    });
+  });
+});
+
+// List chain executions (latest first) with chain names when available
+app.get('/api/chain-executions', (req, res) => {
+  // Load chains to map names in both sqlite and JSON fallback
+  db.all('SELECT * FROM tool_chains ORDER BY created_at DESC', (errChains, chains) => {
+    if (errChains) { res.status(500).json({ error: errChains.message }); return; }
+    const nameById = new Map((chains||[]).map(c=>[c.id, c.name]));
+    db.all('SELECT * FROM chain_executions ORDER BY created_at DESC', (errExec, execs) => {
+      if (errExec) { res.status(500).json({ error: errExec.message }); return; }
+      const rows = (execs||[]).map(e=>({
+        ...e,
+        chain_name: nameById.get(e.chain_id) || e.chain_id
+      }));
+      res.json(rows);
+    });
+  });
+});
+
+// Secure download for chain execution artifacts
+app.get('/api/chain-executions/:id/download/:filename', (req, res) => {
+  const id = req.params.id;
+  const filename = req.params.filename;
+  if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return res.status(400).json({ error: 'Invalid filename' });
+  }
+  const tryPaths = [
+    path.join(outputsDir, filename),
+    path.join(outputsDir, `${id}_split`, filename),
+    path.join(outputsDir, `${id}_pdf`, filename),
+  ];
+  const filePath = tryPaths.find(p=> fs.existsSync(p) && (path.basename(p)===filename));
+  if (!filePath) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+  res.download(filePath, filename);
+});
+
 // Helper functions for chain execution
 async function executeCompressionStep(files, config, executionId) {
   setCompressionConfig(config);
@@ -538,7 +657,9 @@ async function executeCompressionStep(files, config, executionId) {
       const rel = path.relative(outputsDir, file.path);
       originalViewUrl = `/outputs/${rel}`;
     }
-    const compressedViewUrl = success ? `/outputs/${path.basename(outputPath)}` : '';
+    const fname = path.basename(outputPath);
+    const compressedViewUrl = success ? `/outputs/${fname}` : '';
+    const compressedDownloadUrl = success ? `/api/chain-executions/${executionId}/download/${fname}` : '';
 
     const ratio = originalSize ? (((originalSize - compressedSize) / originalSize) * 100).toFixed(1) : '0';
 
@@ -548,6 +669,7 @@ async function executeCompressionStep(files, config, executionId) {
       output: success ? path.basename(outputPath) : null,
       originalViewUrl,
       compressedViewUrl,
+      compressedDownloadUrl,
       originalSizeKB: (originalSize / 1024).toFixed(2),
       compressedSizeKB: (compressedSize / 1024).toFixed(2),
       compressionRatio: ratio
@@ -590,7 +712,8 @@ async function executeSplitStep(files, config, executionId) {
         const stats = fs.statSync(filePath);
         const rel = path.relative(outputsDir, filePath);
         const viewUrl = `/outputs/${rel}`;
-        webFiles.push({ name: f, sizeKB: (stats.size / 1024).toFixed(2), viewUrl });
+        const downloadUrl = `/api/chain-executions/${executionId}/download/${path.basename(filePath)}`;
+        webFiles.push({ name: f, sizeKB: (stats.size / 1024).toFixed(2), viewUrl, downloadUrl });
         return {
           originalname: f,
           filename: f,
@@ -648,7 +771,8 @@ async function executePdfSplitStep(files, config, executionId) {
         const stats = fs.statSync(filePath);
         const rel = path.relative(outputsDir, filePath);
         const viewUrl = `/outputs/${rel}`;
-        webFiles.push({ name: f, sizeKB: (stats.size / 1024).toFixed(2), viewUrl });
+        const downloadUrl = `/api/chain-executions/${executionId}/download/${path.basename(filePath)}`;
+        webFiles.push({ name: f, sizeKB: (stats.size / 1024).toFixed(2), viewUrl, downloadUrl });
         return {
           originalname: f,
           filename: f,
@@ -679,9 +803,28 @@ async function executePdfSplitStep(files, config, executionId) {
 app.use('/uploads', express.static(uploadsDir));
 app.use('/outputs', express.static(outputsDir));
 
-// Serve the main HTML page
+// Serve the main HTML page and handle SPA routing
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  const indexPath = fs.existsSync(path.join(uiDist, 'index.html')) 
+    ? path.join(uiDist, 'index.html')
+    : path.join(publicFallback, 'index.html');
+  
+  res.sendFile(indexPath);
+});
+
+// Handle client-side routing - serve index.html for all non-API routes
+app.use((req, res, next) => {
+  // Skip API routes and static assets
+  if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/') || req.path.startsWith('/outputs/')) {
+    return res.status(404).json({ error: 'Route not found' });
+  }
+  
+  // Serve index.html for all other routes (SPA routing)
+  const indexPath = fs.existsSync(path.join(uiDist, 'index.html')) 
+    ? path.join(uiDist, 'index.html')
+    : path.join(publicFallback, 'index.html');
+  
+  res.sendFile(indexPath);
 });
 
 // Helper to start server (used by Electron or CLI)
@@ -691,7 +834,11 @@ export function startServer(port = DEFAULT_PORT) {
       const server = app.listen(port, () => {
         const address = server.address();
         const actualPort = typeof address === 'object' && address ? address.port : port;
-        console.log(`Image Tools Web Server running on http://localhost:${actualPort}`);
+        console.log(`\n🚀 Image Tools Web Server running on http://localhost:${actualPort}`);
+        console.log(`📱 React UI: ${fs.existsSync(uiDist) ? 'Built ✅' : 'Not built ⚠️'}`);
+        console.log(`💾 Database: ${path.resolve(BASE_DIR, 'data')}`);
+        console.log(`📁 Uploads: ${uploadsDir}`);
+        console.log(`📁 Outputs: ${outputsDir}\n`);
         resolve({ server, port: actualPort });
       });
       server.on('error', (err) => reject(err));

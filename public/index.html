@@ -3,80 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Processing Tools</title>
+    <title>Image Utils</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+        :root {
+            --bg: #f7f8fa;
+            --card: #ffffff;
+            --muted: #6b7280;
+            --text: #111827;
+            --primary: #3b82f6;
+            --primary-600: #2563eb;
+            --border: #e5e7eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --shadow: 0 6px 18px rgba(0,0,0,0.06);
+        }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            padding: 20px;
+            padding: 24px;
+            -webkit-font-smoothing: antialiased;
         }
         
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
+        .container { max-width: 1200px; margin: 0 auto; background: var(--card); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--border); }
         
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-        }
+        .header { background: var(--card); color: var(--text); padding: 24px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
         
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
+        .header h1 { font-size: 1.5rem; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
         
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
+        .header p { display:none; }
         
-        .nav-tabs {
-            display: flex;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-        }
+        .nav-tabs { display:flex; background: var(--card); border-bottom: 1px solid var(--border); }
         
-        .nav-tab {
-            flex: 1;
-            padding: 20px;
-            text-align: center;
-            background: none;
-            border: none;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-bottom: 3px solid transparent;
-        }
+        .nav-tab { flex:1; padding:14px 16px; text-align:center; background:none; border:none; font-size:0.95rem; font-weight:600; cursor:pointer; transition: all .2s ease; border-bottom:2px solid transparent; color: var(--muted); }
         
-        .nav-tab:hover {
-            background: #e9ecef;
-        }
+        .nav-tab:hover { background:#fafafa; color: var(--text); }
         
-        .nav-tab.active {
-            background: white;
-            border-bottom-color: #667eea;
-            color: #667eea;
-        }
+        .nav-tab.active { background: var(--card); border-bottom-color: var(--primary); color: var(--primary); }
         
-        .content {
-            padding: 40px;
-        }
+        .content { padding: 28px 32px; }
         
         .tab-content {
             display: none;
@@ -86,26 +58,11 @@
             display: block;
         }
         
-        .upload-area {
-            border: 3px dashed #dee2e6;
-            border-radius: 15px;
-            padding: 60px 40px;
-            text-align: center;
-            margin-bottom: 30px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
+        .upload-area { border:2px dashed var(--border); border-radius:12px; padding:40px 28px; text-align:center; margin-bottom:20px; transition: all .2s ease; cursor:pointer; background:#fff; }
         
-        .upload-area:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
-        }
+        .upload-area:hover { border-color: var(--primary); background:#f9fafb; }
         
-        .upload-area.dragover {
-            border-color: #667eea;
-            background: #f0f4ff;
-            transform: scale(1.02);
-        }
+        .upload-area.dragover { border-color: var(--primary); background:#eef6ff; transform: scale(1.01); }
         
         .upload-icon {
             font-size: 3rem;
@@ -160,32 +117,13 @@
             width: auto;
         }
         
-        .btn {
-            padding: 15px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        .btn { display:inline-block; padding:10px 16px; border-radius:8px; border:1px solid var(--border); background:#fff; font-size:0.95rem; font-weight:600; cursor:pointer; transition: transform .06s ease, box-shadow .15s ease, background .15s ease; }
         
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
+        .btn-primary { background: var(--primary); border-color: var(--primary); color:#fff; }
         
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(59,130,246,0.25); background: var(--primary-600); }
         
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
+        .btn-secondary { background:#fff; color: var(--text); }
         
         .btn:disabled {
             opacity: 0.6;
@@ -197,15 +135,7 @@
             margin: 20px 0;
         }
         
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
+        .file-item { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:#fff; border:1px solid var(--border); border-radius:10px; margin-bottom:10px; }
         
         .file-info {
             flex: 1;
@@ -225,20 +155,11 @@
             margin-top: 30px;
         }
         
-        .result-item {
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
+        .result-item { padding:18px; background:#fff; border:1px solid var(--border); border-radius:12px; margin-bottom:14px; box-shadow: var(--shadow); }
         
-        .result-success {
-            border-left: 4px solid #28a745;
-        }
+        .result-success { border-left: 4px solid var(--success); }
         
-        .result-error {
-            border-left: 4px solid #dc3545;
-        }
+        .result-error { border-left: 4px solid var(--danger); }
         
         .loading {
             text-align: center;
@@ -264,22 +185,9 @@
             margin-top: 20px;
         }
         
-        .job-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+        .job-item { display:flex; justify-content:space-between; align-items:center; padding:16px; background:#fff; border:1px solid var(--border); border-radius:10px; margin-bottom:12px; cursor:pointer; transition: background .1s ease; }
         
-        .job-item:hover {
-            background: #e9ecef;
-            transform: translateY(-2px);
-        }
+        .job-item:hover { background:#f8fafc; }
         
         .job-info h4 {
             margin-bottom: 5px;
@@ -407,25 +315,24 @@
             margin-top: 15px;
         }
         
-        .download-link {
-            display: inline-block;
-            margin-right: 10px;
-            margin-bottom: 10px;
-            padding: 8px 15px;
-            background: #667eea;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 0.9rem;
-        }
+        .download-link { display:inline-block; margin-right:8px; margin-bottom:8px; padding:6px 12px; background: var(--primary); color:#fff; text-decoration:none; border-radius:6px; font-size: .85rem; border:1px solid var(--primary); }
         
-        .download-link:hover {
-            background: #5a67d8;
-        }
+        .download-link:hover { background: var(--primary-600); }
+
+        /* Toasts */
+        .toast { position: fixed; right: 24px; bottom: 24px; background:#111827; color:#fff; padding:12px 16px; border-radius:10px; box-shadow: var(--shadow); opacity:0; transform: translateY(8px); transition: all .2s ease; z-index: 2000; }
+        .toast.show { opacity:1; transform: translateY(0); }
+
+        /* Grid thumbs */
+        .thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-top: 12px; }
+        .thumb-card { background:#fff; border:1px solid var(--border); border-radius: 8px; overflow:hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .thumb-card img { width: 100%; height: 120px; object-fit: cover; display:block; cursor: zoom-in; }
+        .thumb-meta { padding: 8px 10px; font-size: 12px; color: #555; display:flex; justify-content: space-between; align-items:center; }
+        .thumb-meta a { font-size: 12px; }
 
         /* Image compare slider */
         .compare { position: relative; display: inline-block; max-width: 100%; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); margin-top: 10px; }
-        .compare img { display: block; width: auto; height: 100%; user-select: none; pointer-events: none; }
+        .compare img { display: block; width: 100%; height: auto; user-select: none; pointer-events: none; }
         .compare .top { position: absolute; top: 0; left: 0; width: 50%; height: 100%; overflow: hidden; }
         .compare .handle { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #667eea; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); cursor: ew-resize; }
         .compare .handle::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 18px; height: 18px; border-radius: 50%; background: #667eea; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
@@ -442,19 +349,28 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Image Processing Tools</h1>
-            <p>Compress, split, and convert your images and PDFs with ease</p>
+            <h1>Image Utils</h1>
+            <div class="header-actions">
+                <div style="background: #fef2f2; color: #dc2626; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; border: 1px solid #fecaca; margin-right: 10px;">
+                    ⚠️ React UI not built
+                </div>
+                <button class="btn" onclick="openCmdK()">⌘K</button>
+                <button class="btn" onclick="openSettings()">Settings</button>
+            </div>
         </div>
-        
-        <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('compress')">Compress Images</button>
-            <button class="nav-tab" onclick="showTab('split')">Split Images</button>
-            <button class="nav-tab" onclick="showTab('pdf')">PDF to Images</button>
-            <button class="nav-tab" onclick="showTab('chains')">Tool Chains</button>
-            <button class="nav-tab" onclick="showTab('jobs')">Job History</button>
-        </div>
-        
-        <div class="content">
+
+        <div style="display:flex; min-height: 60vh;">
+          <aside class="sidebar" style="width: 220px; border-right:1px solid var(--border); background:#fff; padding: 12px;">
+            <nav class="side-nav">
+              <button class="nav-tab active" data-tab="compress" onclick="showTab('compress', this)">Compress Images</button>
+              <button class="nav-tab" data-tab="split" onclick="showTab('split', this)">Split Images</button>
+              <button class="nav-tab" data-tab="pdf" onclick="showTab('pdf', this)">PDF to Images</button>
+              <div style="height:10px"></div>
+              <button class="nav-tab" data-tab="chains" onclick="showTab('chains', this)">Tool Chains</button>
+              <button class="nav-tab" data-tab="jobs" onclick="showTab('jobs', this)">Job History</button>
+            </nav>
+          </aside>
+          <main class="content" style="flex:1;">
             <!-- Compress Tab -->
             <div id="compress-tab" class="tab-content active">
                 <h2>Image Compression</h2>
@@ -619,6 +535,7 @@
                 <button type="button" class="btn btn-secondary" onclick="loadJobs()" style="margin-bottom: 20px;">Refresh</button>
                 <div id="jobs-list" class="jobs-list"></div>
             </div>
+          </main>
         </div>
     </div>
 
@@ -629,13 +546,68 @@
             <div id="job-details"></div>
         </div>
     </div>
+    
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSettings()">&times;</span>
+            <h3>Settings</h3>
+            <div class="form-group">
+                <label>Default Compression Level</label>
+                <select id="pref-compression" >
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="extreme">Extreme</option>
+                </select>
+            </div>
+            <div class="checkbox-group">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="pref-webp">
+                    <label for="pref-webp">Default: Convert to WebP</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="pref-grayscale">
+                    <label for="pref-grayscale">Default: Grayscale</label>
+                </div>
+            </div>
+            <div style="margin-top:16px">
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Command Palette -->
+    <div id="cmdk" class="modal">
+      <div class="modal-content" style="max-width:600px;">
+        <span class="close" onclick="closeCmdK()">&times;</span>
+        <input id="cmdk-input" placeholder="Type a command... (e.g., compress)" style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; margin-bottom:12px;" />
+        <div id="cmdk-list">
+          <div class="job-item" data-cmd="compress" onclick="showTab('compress'); closeCmdK()">Open: Compress Images</div>
+          <div class="job-item" data-cmd="split" onclick="showTab('split'); closeCmdK()">Open: Split Images</div>
+          <div class="job-item" data-cmd="pdf" onclick="showTab('pdf'); closeCmdK()">Open: PDF to Images</div>
+          <div class="job-item" data-cmd="chains" onclick="showTab('chains'); closeCmdK()">Open: Tool Chains</div>
+          <div class="job-item" data-cmd="jobs" onclick="showTab('jobs'); closeCmdK()">Open: Job History</div>
+          <div class="job-item" data-cmd="settings" onclick="openSettings(); closeCmdK()">Open: Settings</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Lightbox Modal -->
+    <div id="img-modal" class="modal">
+        <div class="modal-content" style="padding:0; max-width: 90%; max-height:90%">
+            <span class="close" onclick="closeImgModal()" style="position:absolute; right:16px; top:8px; z-index:2">&times;</span>
+            <img id="img-modal-src" src="" alt="Preview" style="display:block; max-width:100%; max-height:90vh; border-radius: 12px;" />
+        </div>
+    </div>
 
     <script>
         let currentFiles = {};
         let chainStepCount = 0;
 
         // Tab switching
-        function showTab(tabName) {
+        function showTab(tabName, el) {
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
@@ -646,7 +618,11 @@
             
             // Show selected tab
             document.getElementById(tabName + '-tab').classList.add('active');
-            event.target.classList.add('active');
+            if (el) { el.classList.add('active'); }
+            else {
+              const btn = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
+              if (btn) btn.classList.add('active');
+            }
         }
 
         // File handling
@@ -735,8 +711,10 @@
                 }
                 
                 displayResults(result, resultElement);
+                showToast('Job completed');
             } catch (error) {
                 resultElement.innerHTML = `<div class="result-item result-error">Error: ${error.message}</div>`;
+                showToast('Error: ' + error.message);
             }
         }
 
@@ -1113,6 +1091,7 @@
                 
                 resultElement.innerHTML = html;
                 document.querySelectorAll('.compare').forEach(initCompare);
+                document.querySelectorAll('.thumb-card img').forEach(img => img.addEventListener('click', ()=> openImgModal(img.src)));
             } catch (error) {
                 resultElement.innerHTML = `<div class="result-item result-error">Error: ${error.message}</div>`;
             }
@@ -1197,8 +1176,60 @@
             document.getElementById('job-modal').style.display = 'none';
         }
 
+        // Settings
+        function openSettings(){ document.getElementById('settings-modal').style.display = 'block'; }
+        function closeSettings(){ document.getElementById('settings-modal').style.display = 'none'; }
+        function saveSettings(){
+            const prefs = {
+                compression: document.getElementById('pref-compression').value,
+                webp: document.getElementById('pref-webp').checked,
+                grayscale: document.getElementById('pref-grayscale').checked
+            };
+            localStorage.setItem('image-utils:prefs', JSON.stringify(prefs));
+            // apply to compress form defaults
+            const form = document.getElementById('compress-form');
+            form.querySelector('select[name="level"]').value = prefs.compression;
+            form.querySelector('input[name="webp"]').checked = prefs.webp;
+            form.querySelector('input[name="grayscale"]').checked = prefs.grayscale;
+            closeSettings();
+            showToast('Preferences saved');
+        }
+        function loadSettings(){
+            try{
+                const raw = localStorage.getItem('image-utils:prefs');
+                if(!raw) return;
+                const prefs = JSON.parse(raw);
+                document.getElementById('pref-compression').value = prefs.compression || 'medium';
+                document.getElementById('pref-webp').checked = !!prefs.webp;
+                document.getElementById('pref-grayscale').checked = !!prefs.grayscale;
+                // apply to form defaults
+                const form = document.getElementById('compress-form');
+                form.querySelector('select[name="level"]').value = prefs.compression || 'medium';
+                form.querySelector('input[name="webp"]').checked = !!prefs.webp;
+                form.querySelector('input[name="grayscale"]').checked = !!prefs.grayscale;
+            }catch{}
+        }
+
+        // Toasts
+        let toastTimer = null;
+        function showToast(msg){
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(()=> t.classList.remove('show'), 2200);
+        }
+
+        function openImgModal(src){
+            const m = document.getElementById('img-modal');
+            document.getElementById('img-modal-src').src = src;
+            m.style.display = 'block';
+        }
+        function closeImgModal(){ document.getElementById('img-modal').style.display = 'none'; }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
             setupFileInput('compress-files', 'compress-file-list', ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff', '.avif']);
             setupFileInput('split-files', 'split-file-list', ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff']);
             setupFileInput('pdf-files', 'pdf-file-list', ['.pdf']);
@@ -1206,15 +1237,55 @@
             
             loadJobs();
             loadChains();
+            document.addEventListener('click', (e)=>{
+                if(e.target.matches('.thumb-card img')) openImgModal(e.target.src);
+            });
+
+            // Keyboard shortcuts
+            window.addEventListener('keydown', (e)=>{
+              const isMeta = e.metaKey || e.ctrlKey;
+              if (isMeta && e.key.toLowerCase() === 'k') { e.preventDefault(); openCmdK(); }
+              if (!isMeta) {
+                if (e.key === '1') showTab('compress');
+                if (e.key === '2') showTab('split');
+                if (e.key === '3') showTab('pdf');
+                if (e.key === '4') showTab('chains');
+                if (e.key === '5') showTab('jobs');
+              }
+            });
         });
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('job-modal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
+            ['job-modal','settings-modal','img-modal'].forEach(id => {
+                const m = document.getElementById(id);
+                if (event.target === m) m.style.display = 'none';
+            });
         }
+
+        // Command palette
+        function openCmdK(){
+          const m = document.getElementById('cmdk');
+          m.style.display = 'block';
+          const input = document.getElementById('cmdk-input');
+          input.value = '';
+          input.focus();
+        }
+        function closeCmdK(){ document.getElementById('cmdk').style.display = 'none'; }
+        (function(){
+          const input = document.getElementById('cmdk-input');
+          if (!input) return;
+          input.addEventListener('keydown', (e)=>{
+            if (e.key === 'Escape') closeCmdK();
+            if (e.key === 'Enter') {
+              const val = input.value.toLowerCase();
+              const map = { 'compress':'compress','split':'split','pdf':'pdf','chains':'chains','jobs':'jobs','settings':'settings' };
+              const target = Object.keys(map).find(k => val.includes(k));
+              if (target === 'settings') openSettings(); else if (target) showTab(map[target]);
+              closeCmdK();
+            }
+          });
+        })();
     </script>
 </body>
 </html>

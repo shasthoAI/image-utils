@@ -29,6 +29,46 @@ npm run mcp:server        # Start MCP server for AI integration
 npm run mcp:test          # Test MCP server functionality
 ```
 
+### Web Application (Unified System)
+
+The web application now uses a **unified build and serve system**:
+
+```bash
+# Production: Build React app and serve (recommended)
+npm start                 # Automatically builds React app, then starts server
+
+# Alternative production command
+npm run web               # Same as npm start
+
+# Development: Run both API and UI servers in parallel  
+npm run dev               # Runs web server + Vite dev server concurrently
+
+# Manual build (if needed)
+npm run build             # Builds React app to app/dist/
+
+# React-only development
+npm run app:dev           # Start only React dev server (localhost:5173)
+npm run app:build         # Build only React app
+npm run app:preview       # Preview built React app
+```
+
+#### How It Works
+
+1. **Production** (`npm start`): 
+   - Automatically builds React app to `app/dist/`
+   - Serves built React app via Express server on port 3000
+   - Single unified process
+
+2. **Development** (`npm run dev`):
+   - Runs web server (localhost:3000) for API 
+   - Runs Vite dev server (localhost:5173) for React app
+   - Both run concurrently with hot reload
+
+3. **Build Process**:
+   - React app builds to `app/dist/`
+   - Express server automatically detects and serves built React app
+   - Falls back to `public/index.html` if React app not built
+
 ### Global CLI Installation
 ```bash
 npm run global:install    # Install CLI tools globally

@@ -58,7 +58,7 @@ async function createWindow() {
   // Resolve and import the web server module
   let startServer;
   try {
-    const webServerPath = path.resolve(__dirname, '..', 'src', 'web-server.js');
+    const webServerPath = path.resolve(__dirname, 'src', 'web-server.js');
     const webServerModule = await import(pathToFileURL(webServerPath).href);
     startServer = webServerModule.startServer;
   } catch (err) {

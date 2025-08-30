@@ -95,7 +95,10 @@ try {
       } catch (err) { if (callback) callback(err); }
     }
   };
+  console.log('🗃️  Database: SQLite (better-sqlite3) initialized at', dbPath);
 } catch (e) {
+  console.warn('⚠️  SQLite unavailable, falling back to JSON storage:', e.message);
+  console.log('📄 Database: JSON fallback at', jsonPath);
   // JSON fallback store
   const load = () => {
     try {
@@ -162,6 +165,12 @@ try {
           if (ce) { ce.status = 'failed'; ce.updated_at = updated_at; save(data); }
           cb && cb.call({ changes: ce ? 1 : 0 }, null); return;
         }
+        if (s.startsWith('update chain_executions set status = ?')) {
+          const [status, updated_at, id] = params;
+          const ce = data.chain_executions.find(x => x.id === id);
+          if (ce) { ce.status = status; ce.updated_at = updated_at; save(data); }
+          cb && cb.call({ changes: ce ? 1 : 0 }, null); return;
+        }
         if (s.startsWith('insert into chain_executions')) {
           const [id, chain_id, input_files] = params;
           data.chain_executions.push({ id, chain_id, current_step: 0, status: 'pending', input_files, output_files: null, created_at: nowISO(), updated_at: nowISO() });
@@ -189,6 +198,11 @@ try {
           const [jobId, like] = params;
           const row = data.files.find(f => f.job_id === jobId && f.type === 'output' && likeMatch(f.path, like));
           cb && cb(null, row ? { path: row.path } : undefined); return;
+        }
+        if (s.startsWith('select * from chain_executions where id =')) {
+          const [id] = params;
+          const row = data.chain_executions.find(x => x.id === id) || null;
+          cb && cb(null, row); return;
         }
         cb && cb(null, undefined);
       } catch (err) { cb && cb(err); }

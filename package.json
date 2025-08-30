@@ -1,7 +1,7 @@
 {
   "name": "image-utils",
   "version": "1.0.0",
-  "main": "electron/main.js",
+  "main": "main.js",
   "type": "module",
   "bin": {
     "image-compress": "./bin/compress.js",
@@ -21,13 +21,21 @@
     "split:pdf": "node src/pdf_splitter.js",
     "mcp:server": "node src/mcp-server.js",
     "mcp:test": "node test-mcp-full.js",
-    "web": "node src/web-server.js",
+    "prebuild": "npm run app:build",
+    "build": "npm run app:build",
+    "prestart": "npm run build",
     "start": "node src/web-server.js",
-    "desktop:dev": "electron .",
+    "web": "npm run build && node src/web-server.js",
+    "dev": "concurrently -k -n API,UI \"npm run web:dev\" \"npm run app:dev\"",
+    "web:dev": "nodemon --watch src --ext js,mjs,json --exec \"node src/web-server.js\"",
+    "app:dev": "npm --prefix app run dev",
+    "app:build": "npm --prefix app run build",
+    "app:preview": "npm --prefix app run preview",
+    "desktop:dev": "cross-env UI_DEV_URL=http://localhost:5173 concurrently -k -n API,UI,APP \"npm run web:dev\" \"npm run app:dev\" \"electron .\"",
+    "desktop:build": "npm run build && electron-builder --dir",
+    "desktop:dist": "npm run build && electron-builder",
     "native:deps": "electron-builder install-app-deps",
     "native:rebuild": "npx electron-rebuild -f -w better-sqlite3 -w sharp",
-    "desktop:pack": "electron-builder --dir",
-    "desktop:dist": "electron-builder",
     "global:install": "npm install -g .",
     "global:uninstall": "npm uninstall -g image-utils",
     "global:update": "npm uninstall -g image-utils && npm install -g .",
@@ -54,14 +62,27 @@
   },
   "devDependencies": {
     "electron": "30.5.1",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.1",
+    "cross-env": "^7.0.3"
   },
   "build": {
     "npmRebuild": true,
     "appId": "com.shastho.imageutils",
     "productName": "Image Utils",
+    "directories": {
+      "output": "dist",
+      "app": "."
+    },
     "files": [
       "**/*",
+      "!dist",
+      "!uploads",
+      "!outputs",
+      "!input",
+      "!output",
+      "!data",
       "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
       "!**/*.map",
       "!**/test/**"
@@ -74,6 +95,7 @@
     ],
     "extraResources": [
       { "from": "public", "to": "public" },
+      { "from": "app/dist", "to": "app/dist" },
       { "from": "data", "to": "data" },
       { "from": "uploads", "to": "uploads" },
       { "from": "outputs", "to": "outputs" }
