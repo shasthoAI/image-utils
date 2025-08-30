@@ -1,29 +1,66 @@
 import * as React from "react";
+import { FileText, Image as ImageIcon, X } from "lucide-react";
 
 export const SelectedFiles: React.FC<{ files: File[]; onRemove: (index: number) => void }> = ({ files, onRemove }) => {
   return (
     <div>
       <div className="text-xs text-muted-foreground mb-2">{files.length} file(s) selected</div>
-      <ul className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
         {files.map((f, i) => (
-          <li key={i} className="inline-flex items-center gap-2 max-w-full px-2 py-1 border border-border rounded-md bg-background text-xs">
-            <span className="truncate max-w-[220px]" title={`${f.name} — ${formatBytes(f.size)}`}>
-              {f.name}
-            </span>
-            <span className="text-muted-foreground">{formatBytes(f.size)}</span>
+          <div key={i} className="relative border border-border rounded-md overflow-hidden bg-card">
             <button
               type="button"
-              className="ml-1 rounded p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute top-1 right-1 z-10 inline-flex items-center justify-center h-6 w-6 rounded-md bg-background/80 backdrop-blur border border-border text-foreground/70 hover:text-foreground hover:bg-background transition-colors"
               aria-label={`Remove ${f.name}`}
               onClick={() => onRemove(i)}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" className="pointer-events-none">
-                <path fill="currentColor" d="M18.3 5.71L12 12.01l-6.3-6.3-1.4 1.41 6.3 6.3-6.3 6.3 1.4 1.41 6.3-6.3 6.3 6.3 1.41-1.41-6.3-6.3 6.3-6.3z" />
-              </svg>
+              <X className="h-4 w-4" />
             </button>
-          </li>
+            <div className="bg-muted flex items-center justify-center w-full aspect-square">
+              <PreviewThumb file={f} />
+            </div>
+            <div className="p-2">
+              <div className="text-xs font-medium break-words whitespace-normal" title={f.name}>{f.name}</div>
+              <div className="text-[10px] text-muted-foreground">{formatBytes(f.size)}</div>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
+    </div>
+  );
+};
+
+const PreviewThumb: React.FC<{ file: File }> = ({ file }) => {
+  const [url, setUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const u = URL.createObjectURL(file);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
+
+  const type = (file.type || "").toLowerCase();
+  const isImage = type.startsWith("image/");
+  const isPdf = type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+  if (isImage && url) {
+    return <img src={url} alt={file.name} className="h-full w-full object-contain" />;
+  }
+
+  if (isPdf && url) {
+    // Try to render first page preview; fall back to icon if not supported
+    return (
+      <object data={url + "#page=1&zoom=80"} type="application/pdf" className="h-full w-full">
+        <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+          <FileText className="h-6 w-6 mr-2" /> PDF
+        </div>
+      </object>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+      <ImageIcon className="h-6 w-6 mr-2" /> No preview
     </div>
   );
 };
@@ -38,4 +75,3 @@ function formatBytes(n: number) {
   }
   return `${Math.round(v * 10) / 10} ${units[u]}`;
 }
-

@@ -112,3 +112,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Electron-only window styling */
+.electron body { background: transparent !important; }
+.drag { -webkit-app-region: drag; }
+.no-drag { -webkit-app-region: no-drag; }

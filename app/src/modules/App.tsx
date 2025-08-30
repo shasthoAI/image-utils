@@ -44,10 +44,11 @@ const App: React.FC = () => {
     return [switchTo('compress'), switchTo('split'), switchTo('pdf'), switchTo('chains'), switchTo('jobs')];
   }, []);
   const filtered = useMemo(() => commands.filter(c => c.label.toLowerCase().includes(query.toLowerCase())), [commands, query]);
+  const isElectron = typeof window !== 'undefined' && (window as any).appWindow;
   return (
-    <div className="h-full max-w-7xl mx-auto p-4">
-      <div className="bg-card border border-border rounded-xl shadow-sm min-h-[70vh] grid grid-cols-[240px_1fr]">
-        <aside className="border-r border-border bg-muted/50 p-4 space-y-3 rounded-l-xl">
+    <div className={`h-screen ${isElectron ? 'p-0' : 'max-w-7xl mx-auto p-4'}`}>
+      <div className="bg-card border border-border rounded-xl shadow-xl h-full grid grid-cols-[240px_1fr] overflow-hidden">
+        <aside className="border-r border-border bg-muted/50 p-4 space-y-3 rounded-l-xl overflow-hidden">
           <div className="px-2 py-3">
             <div className="text-lg font-bold tracking-tight text-foreground">Image Utils</div>
             <div className="text-sm text-muted-foreground">Power tools for images</div>
@@ -83,7 +84,7 @@ const App: React.FC = () => {
             </Button>
           </div>
         </aside>
-        <main className="p-6 space-y-6">
+        <main className="p-6 space-y-6 overflow-y-auto">
           <HeaderBar title={labelFor(tab)} onOpenPalette={() => setPaletteOpen(true)} />
           <div className="space-y-6">
             {tab === 'compress' && <CompressView />}
@@ -132,4 +133,3 @@ const App: React.FC = () => {
 }
 
 export default App;
-

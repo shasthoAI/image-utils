@@ -39,10 +39,14 @@ async function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
+      preload: path.resolve(__dirname, 'electron', 'preload.js'),
     },
     show: false,
   });
@@ -90,6 +94,14 @@ async function createWindow() {
     shell.openExternal(url);
     return { action: 'deny' };
   });
+
+  // IPC for window controls
+  const { ipcMain } = await import('electron');
+  ipcMain.on('app-window:minimize', () => win.minimize());
+  ipcMain.on('app-window:max-toggle', () => {
+    if (win.isMaximized()) win.unmaximize(); else win.maximize();
+  });
+  ipcMain.on('app-window:close', () => win.close());
 
   // Log failed loads for visibility during packaging
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
