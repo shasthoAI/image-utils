@@ -87,11 +87,21 @@ const App: React.FC = () => {
         <main className="p-6 space-y-6 overflow-y-auto">
           <HeaderBar title={labelFor(tab)} onOpenPalette={() => setPaletteOpen(true)} />
           <div className="space-y-6">
-            {tab === 'compress' && <CompressView />}
-            {tab === 'split' && <SplitView />}
-            {tab === 'pdf' && <PdfView />}
-            {tab === 'chains' && <ChainsView />}
-            {tab === 'jobs' && <JobsView />}
+            <div className={tab === 'compress' ? '' : 'hidden'}>
+              <CompressView />
+            </div>
+            <div className={tab === 'split' ? '' : 'hidden'}>
+              <SplitView />
+            </div>
+            <div className={tab === 'pdf' ? '' : 'hidden'}>
+              <PdfView />
+            </div>
+            <div className={tab === 'chains' ? '' : 'hidden'}>
+              <ChainsView />
+            </div>
+            <div className={tab === 'jobs' ? '' : 'hidden'}>
+              <JobsView />
+            </div>
           </div>
         </main>
       </div>

@@ -47,23 +47,25 @@ if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
  * @param {string} pdfPath Absolute path to the PDF file
  * @param {string} outputDir Output directory (optional, defaults to same as input)
  */
-export async function convertPdfToImages(pdfPath, outputDir = null) {
+export async function convertPdfToImages(pdfPath, outputDir = null, options = {}) {
   const baseName = path.basename(pdfPath, path.extname(pdfPath));
   const poppler = POPPLER_PATH ? new Poppler(POPPLER_PATH) : new Poppler();
+  const fmt = (options.format || FORMAT || 'png').toLowerCase();
+  const scale = parseInt(options.scale || SCALE || 150, 10);
   const opts = {
     // map format to node-poppler flag
-    ...(FORMAT === 'png' && { pngFile: true }),
-    ...(FORMAT === 'jpeg' && { jpegFile: true }),
-    ...(FORMAT === 'jpg' && { jpegFile: true }),
-    ...(FORMAT === 'tiff' && { tiffFile: true }),
+    ...(fmt === 'png' && { pngFile: true }),
+    ...(fmt === 'jpeg' && { jpegFile: true }),
+    ...(fmt === 'jpg' && { jpegFile: true }),
+    ...(fmt === 'tiff' && { tiffFile: true }),
 
 
 
-    resolutionXAxis: SCALE,
-    resolutionYAxis: SCALE,
+    resolutionXAxis: scale,
+    resolutionYAxis: scale,
   };
 
-  console.log(`Converting ${path.basename(pdfPath)} → ${FORMAT.toUpperCase()} (scale ${SCALE})`);
+  console.log(`Converting ${path.basename(pdfPath)} → ${fmt.toUpperCase()} (scale ${scale})`);
   
   const finalOutputDir = outputDir || path.dirname(pdfPath);
   
@@ -74,7 +76,7 @@ export async function convertPdfToImages(pdfPath, outputDir = null) {
   
   try {
     // pdfToCairo converts pages; outputFile acts as prefix without extension
-    const outputFile = path.join(finalOutputDir, `${baseName}.${FORMAT}`);
+    const outputFile = path.join(finalOutputDir, `${baseName}.${fmt}`);
     const res = await poppler.pdfToCairo(pdfPath, outputFile, opts);
     if (res) {
       // res is array of generated filenames

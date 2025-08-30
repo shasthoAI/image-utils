@@ -339,7 +339,7 @@ app.post('/api/pdf-split', upload.array('files'), async (req, res) => {
           fs.mkdirSync(jobOutputDir, { recursive: true });
         }
         
-        await convertPdfToImages(file.path, jobOutputDir);
+        await convertPdfToImages(file.path, jobOutputDir, { format: config.format, scale: config.scale });
         
         // Record output files (use base from stored path to match poppler output)
         const baseName = path.basename(file.path, '.pdf');
@@ -772,7 +772,7 @@ async function executePdfSplitStep(files, config, executionId) {
       fs.mkdirSync(stepOutputDir, { recursive: true });
     }
     
-    await convertPdfToImages(file.path, stepOutputDir);
+    await convertPdfToImages(file.path, stepOutputDir, { format: config.format || 'png', scale: config.scale || 150 });
     
     const baseName = path.basename(file.path, '.pdf');
     const pdfFiles = fs.readdirSync(stepOutputDir)
