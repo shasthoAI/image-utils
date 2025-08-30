@@ -21,15 +21,22 @@ const BASE_DIR = process.env.IMAGE_UTILS_DATA_DIR || process.cwd();
 app.use(cors());
 app.use(express.json());
 
-// Check for built React UI
-const uiDist = path.resolve(process.cwd(), 'app', 'dist');
+// Check for built React UI (works in both dev and packaged app)
+const possibleUiPaths = [
+  path.resolve(__dirname, '..', 'app', 'dist'),                    // Development
+  process.resourcesPath ? path.resolve(process.resourcesPath, 'app', 'dist') : null, // Packaged app
+  path.resolve(process.cwd(), 'app', 'dist')                      // Alternative fallback
+].filter(Boolean);
+
+const uiDist = possibleUiPaths.find(p => fs.existsSync(p));
 const publicFallback = path.join(__dirname, '..', 'public');
 
-if (fs.existsSync(uiDist)) {
+if (uiDist) {
   console.log(`🎯 Serving React UI from: ${uiDist}`);
   app.use(express.static(uiDist));
 } else {
-  console.warn(`⚠️  React UI not built. Run 'npm run build' first.`);
+  console.warn(`⚠️  React UI not built. Tried paths:`);
+  possibleUiPaths.forEach(p => console.warn(`   - ${p} ${fs.existsSync(p) ? '✅' : '❌'}`));
   console.log(`📁 Falling back to: ${publicFallback}`);
   app.use(express.static(publicFallback));
 }
@@ -545,9 +552,18 @@ app.post('/api/chains/:id/execute-async', upload.array('files'), async (req, res
           let currentFiles = req.files;
           const results = [];
           try {
+            console.log(`🔄 Starting chain execution ${executionId} with ${steps.length} steps`);
             for (let i = 0; i < steps.length; i++) {
               const step = steps[i];
-              db.run('UPDATE chain_executions SET current_step = ?, updated_at = ? WHERE id = ?', [i, new Date().toISOString(), executionId]);
+              console.log(`📝 Executing step ${i + 1}/${steps.length}: ${step.tool}`);
+              
+              // Update current step with Promise wrapper
+              await new Promise((resolve, reject) => {
+                db.run('UPDATE chain_executions SET current_step = ?, updated_at = ? WHERE id = ?', [i, new Date().toISOString(), executionId], function(err) {
+                  if (err) reject(err); else resolve(this);
+                });
+              });
+              
               let stepResult;
               if (step.tool === 'compress') {
                 stepResult = await executeCompressionStep(currentFiles, step.config || {}, executionId);
@@ -557,14 +573,33 @@ app.post('/api/chains/:id/execute-async', upload.array('files'), async (req, res
                 stepResult = await executePdfSplitStep(currentFiles, step.config || {}, executionId);
               }
               results.push(stepResult);
-              if (stepResult.outputFiles) currentFiles = stepResult.outputFiles;
+              if (stepResult && stepResult.outputFiles) currentFiles = stepResult.outputFiles;
+              console.log(`✅ Step ${i + 1} completed with ${stepResult?.results?.length || 0} results`);
             }
-            db.run(
-              'UPDATE chain_executions SET status = "completed", output_files = ?, updated_at = ? WHERE id = ?',
-              [JSON.stringify(results), new Date().toISOString(), executionId]
-            );
+            console.log(`🎉 Chain execution ${executionId} completed successfully`);
+            
+            // Update completion status with Promise wrapper
+            await new Promise((resolve, reject) => {
+              db.run(
+                'UPDATE chain_executions SET status = "completed", output_files = ?, updated_at = ? WHERE id = ?',
+                [JSON.stringify(results), new Date().toISOString(), executionId],
+                function(err) {
+                  if (err) reject(err); else resolve(this);
+                }
+              );
+            });
+            console.log(`💾 Database updated for execution ${executionId}`);
           } catch (error) {
-            db.run('UPDATE chain_executions SET status = "failed", updated_at = ? WHERE id = ?', [new Date().toISOString(), executionId]);
+            console.error(`❌ Chain execution ${executionId} failed:`, error);
+            try {
+              await new Promise((resolve, reject) => {
+                db.run('UPDATE chain_executions SET status = "failed", updated_at = ? WHERE id = ?', [new Date().toISOString(), executionId], function(err) {
+                  if (err) reject(err); else resolve(this);
+                });
+              });
+            } catch (dbError) {
+              console.error(`❌ Failed to update database for failed execution ${executionId}:`, dbError);
+            }
           }
         }
       );
@@ -816,7 +851,7 @@ app.use('/outputs', express.static(outputsDir));
 
 // Serve the main HTML page and handle SPA routing
 app.get('/', (req, res) => {
-  const indexPath = fs.existsSync(path.join(uiDist, 'index.html')) 
+  const indexPath = uiDist && fs.existsSync(path.join(uiDist, 'index.html')) 
     ? path.join(uiDist, 'index.html')
     : path.join(publicFallback, 'index.html');
   
@@ -831,7 +866,7 @@ app.use((req, res, next) => {
   }
   
   // Serve index.html for all other routes (SPA routing)
-  const indexPath = fs.existsSync(path.join(uiDist, 'index.html')) 
+  const indexPath = uiDist && fs.existsSync(path.join(uiDist, 'index.html')) 
     ? path.join(uiDist, 'index.html')
     : path.join(publicFallback, 'index.html');
   

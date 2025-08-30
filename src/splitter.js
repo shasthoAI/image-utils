@@ -12,7 +12,9 @@ dotenv.config();
 // Images to be split should be placed in `input/split`.
 // Generated parts will be written to `output/split`.
 // -----------------------------------------------------------------------------
-const projectRoot = process.cwd();
+// Use writable base directory for Electron packaged apps
+const BASE_DIR = process.env.IMAGE_UTILS_DATA_DIR || process.cwd();
+const projectRoot = BASE_DIR;
 const inputDir = path.resolve(projectRoot, 'input', 'split');
 const outputDir = path.resolve(projectRoot, 'output', 'split');
 

@@ -61,23 +61,34 @@ const App: React.FC = () => {
       if (!el || !(el instanceof HTMLElement)) return false;
       const tag = el.tagName.toLowerCase();
       const editable = (el as HTMLElement).isContentEditable;
-      return editable || tag === 'input' || tag === 'textarea' || tag === 'select';
+      const inputType = (el as HTMLInputElement).type?.toLowerCase();
+      
+      // Check for various input types that should block shortcuts
+      const inputTags = ['input', 'textarea', 'select'];
+      const textInputTypes = ['text', 'number', 'email', 'password', 'search', 'tel', 'url'];
+      
+      return editable || 
+             inputTags.includes(tag) || 
+             (tag === 'input' && textInputTypes.includes(inputType)) ||
+             el.getAttribute('role') === 'textbox' ||
+             el.getAttribute('contenteditable') === 'true';
     };
     const onKey = (e: KeyboardEvent) => {
       const k = e.key;
       const lower = k.toLowerCase();
       const target = e.target as Element | null;
-      // existing nav
+      
+      // Always allow these shortcuts even in text inputs
       if ((e.metaKey || e.ctrlKey) && lower === 'k') { e.preventDefault(); setPaletteOpen(true); return; }
-      if (lower >= '1' && lower <= '5') { const i = Number(lower) - 1; setTab((['compress', 'split', 'pdf', 'chains', 'jobs'] as Tab[])[i]); return; }
-      if (lower === 'j') { setTab('jobs'); return; }
-
-      // show shortcuts
       if (lower === '?') { e.preventDefault(); setShortcutsOpen(true); return; }
       if ((e.metaKey || e.ctrlKey) && lower === '/') { e.preventDefault(); setShortcutsOpen(true); return; }
 
-      // actions that should not trigger while typing
+      // Don't trigger any other shortcuts while typing in text inputs
       if (isTextInput(target)) return;
+
+      // Navigation shortcuts (only when not in text inputs)
+      if (lower >= '1' && lower <= '5') { const i = Number(lower) - 1; setTab((['compress', 'split', 'pdf', 'chains', 'jobs'] as Tab[])[i]); return; }
+      if (lower === 'j') { setTab('jobs'); return; }
 
       // open file selector on Space
       if (k === ' ' || lower === ' ') {

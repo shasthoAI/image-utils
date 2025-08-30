@@ -13,7 +13,9 @@ dotenv.config();
 // Place PDFs to split in `input/pdf`.
 // Generated page images will be written to `output/pdf`.
 // -----------------------------------------------------------------------------
-const projectRoot = process.cwd();
+// Use writable base directory for Electron packaged apps
+const BASE_DIR = process.env.IMAGE_UTILS_DATA_DIR || process.cwd();
+const projectRoot = BASE_DIR;
 const inputDir = path.resolve(projectRoot, 'input', 'pdf');
 const outputDir = path.resolve(projectRoot, 'output', 'pdf');
 

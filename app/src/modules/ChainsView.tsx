@@ -10,7 +10,8 @@ import { Dropzone } from "../components/Dropzone";
 import { SelectedFiles } from "../components/SelectedFiles";
 import { ChainStepEditor, type ChainStep } from "../components/ChainStepEditor";
 import { ProgressBar } from "../components/ProgressBar";
-import { Plus, Save, Play, FileText, Trash2 } from "lucide-react";
+import { ChainResults } from "../components/ChainResults";
+import { Plus, Save, Play, FileText, Trash2, ChevronDown, ChevronUp, Settings, Link } from "lucide-react";
 
 export const ChainsView: React.FC = () => {
   const [chains, setChains] = React.useState<any[]>([]);
@@ -19,38 +20,28 @@ export const ChainsView: React.FC = () => {
   const [result, setResult] = React.useState<any>();
   const [progress, setProgress] = React.useState<{ executionId: string; stepCount: number; currentStep: number; status: string } | null>(null);
   const pollRef = React.useRef<any>(null);
+  
+  // Creation form state
+  const [showCreation, setShowCreation] = React.useState(false);
   const [chainName, setChainName] = React.useState("");
   const [steps, setSteps] = React.useState<ChainStep[]>([]);
-  const [executions, setExecutions] = React.useState<any[]>([]);
-  const [execDetails, setExecDetails] = React.useState<Record<string, any>>({});
 
   React.useEffect(() => {
-    const ac = new AbortController();
-    (async () => {
+    const loadChains = async () => {
       try {
-        const r = await fetch("/api/chains", { signal: ac.signal });
+        const r = await fetch("/api/chains");
         if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
         const j = await r.json();
-        if (!ac.signal.aborted) setChains(j);
-      } catch (e: any) {
-        if (e?.name !== "AbortError" && !ac.signal.aborted) {
-          console.warn("Failed to load chains", e);
+        setChains(j);
+        // Auto-show creation form if no chains exist
+        if (j.length === 0) {
+          setShowCreation(true);
         }
+      } catch (e: any) {
+        console.warn("Failed to load chains", e);
       }
-    })();
-    return () => ac.abort();
-  }, []);
-
-  React.useEffect(() => {
-    const loadExecs = async () => {
-      try {
-        const r = await fetch('/api/chain-executions');
-        if (!r.ok) return;
-        const j = await r.json();
-        setExecutions(j);
-      } catch {}
     };
-    loadExecs();
+    loadChains();
   }, []);
 
   const run = async () => {
@@ -90,198 +81,267 @@ export const ChainsView: React.FC = () => {
     }
   };
 
+  const saveChain = async () => {
+    if (!chainName || steps.length === 0) return;
+    try {
+      const r = await fetch("/api/chains", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ name: chainName, steps }) 
+      });
+      if (!r.ok) throw new Error("Failed to save");
+      setChainName("");
+      setSteps([]);
+      setShowCreation(false);
+      // Reload chains
+      const chainsResponse = await fetch("/api/chains");
+      const chainsData = await chainsResponse.json();
+      setChains(chainsData);
+    } catch (e) {
+      console.warn("Failed to save chain", e);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <Section
-        title="Create Chain"
-        actions={
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => setSteps((s) => [...s, { tool: "compress", config: { compressionLevel: "medium", convertToWebP: false, grayscale: false } }])} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Step
-            </Button>
-            <Button
-              size="sm"
-              variant="default"
-              onClick={async () => {
-                if (!chainName || steps.length === 0) return;
-                try {
-                  const r = await fetch("/api/chains", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: chainName, steps }) });
-                  if (!r.ok) throw new Error("Failed to save");
-                  setChainName("");
-                  setSteps([]);
-                  const j = await (await fetch("/api/chains")).json();
-                  setChains(j);
-                } catch (e) {
-                  console.warn("Failed to save chain", e);
-                }
-              }}
-              disabled={!chainName || steps.length === 0}
+      {/* Existing Chains Overview */}
+      {chains.length > 0 && (
+        <Section
+          title="Saved Tool Chains"
+          description={`${chains.length} automated workflows available`}
+          actions={
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => setShowCreation(!showCreation)}
               className="gap-2"
             >
-              <Save className="h-4 w-4" />
-              Save Chain
+              <Plus className="h-4 w-4" />
+              {showCreation ? 'Hide Creation' : 'Create New Chain'}
             </Button>
+          }
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {chains.map((chain: any) => (
+              <Card 
+                key={chain.id} 
+                className={`cursor-pointer transition-all ${
+                  selected === chain.id 
+                    ? 'ring-2 ring-primary border-primary' 
+                    : 'hover:border-primary/50'
+                }`}
+                onClick={() => setSelected(selected === chain.id ? "" : chain.id)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">{chain.name}</CardTitle>
+                    <div className="flex items-center gap-1">
+                      <Link className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">{chain.steps?.length || 0}</span>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex flex-wrap gap-1">
+                    {(chain.steps || []).map((step: any, idx: number) => (
+                      <div key={idx} className="text-xs bg-muted px-2 py-1 rounded capitalize">
+                        {step.tool}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Created {new Date(chain.created_at).toLocaleDateString()}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        }
-      >
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Chain Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="chain-name">Chain Name</Label>
-                <Input 
-                  id="chain-name"
-                  value={chainName} 
-                  onChange={(e) => setChainName(e.target.value)} 
-                  placeholder="e.g., PDF → Split → Compress" 
-                />
-              </div>
-              <Separator />
-              <div className="text-sm text-muted-foreground">
-                <p className="mb-2">Create automated workflows by chaining multiple image processing steps together.</p>
-                <p>Available tools: Compress, Split, PDF Convert</p>
-              </div>
-            </CardContent>
-          </Card>
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">Processing Steps</Label>
-              <span className="text-sm text-muted-foreground">{steps.length} steps</span>
+        </Section>
+      )}
+
+      {/* Chain Creation Form (Collapsible) */}
+      {showCreation && (
+        <Section
+          title="Create New Chain"
+          description="Build automated workflows by chaining multiple image processing steps"
+          actions={
+            <div className="flex items-center gap-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setSteps((s) => [...s, { tool: "compress", config: { compressionLevel: "medium", convertToWebP: false, grayscale: false } }])}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Step
+              </Button>
+              <Button
+                size="sm"
+                variant="default"
+                onClick={saveChain}
+                disabled={!chainName || steps.length === 0}
+                className="gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Save Chain
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => setShowCreation(false)}
+                className="gap-2"
+              >
+                <ChevronUp className="h-4 w-4" />
+                Hide
+              </Button>
             </div>
-            {steps.length === 0 && (
+          }
+        >
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Chain Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="chain-name">Chain Name</Label>
+                  <Input 
+                    id="chain-name"
+                    value={chainName} 
+                    onChange={(e) => setChainName(e.target.value)} 
+                    placeholder="e.g., PDF → Split → Compress" 
+                  />
+                </div>
+                <Separator />
+                <div className="text-sm text-muted-foreground">
+                  <p className="mb-2">Available tools:</p>
+                  <ul className="text-xs space-y-1">
+                    <li>• <strong>Compress:</strong> Reduce image file sizes</li>
+                    <li>• <strong>Split:</strong> Divide images horizontally</li>
+                    <li>• <strong>PDF Convert:</strong> Extract pages as images</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">Processing Steps</Label>
+                <span className="text-sm text-muted-foreground">{steps.length} steps</span>
+              </div>
+              {steps.length === 0 && (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Settings className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">No steps configured yet.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Click "Add Step" to start building your workflow.</p>
+                  </CardContent>
+                </Card>
+              )}
+              {steps.map((step, idx) => (
+                <ChainStepEditor 
+                  key={idx} 
+                  index={idx} 
+                  step={step} 
+                  onChange={(ns) => setSteps((prev) => prev.map((s, i) => (i === idx ? ns : s)))} 
+                  onRemove={() => setSteps((prev) => prev.filter((_, i) => i !== idx))} 
+                />
+              ))}
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {/* Chain Execution */}
+      {chains.length > 0 && (
+        <>
+          {progress && (
+            <Section title="Execution Progress">
+              <ProgressBar current={progress.currentStep} total={progress.stepCount} status={progress.status} />
+            </Section>
+          )}
+
+          <Section 
+            title="Execute Chain" 
+            description={selected ? `Execute "${chains.find(c => c.id === selected)?.name}" with uploaded files` : "Select a chain above to get started"}
+            actions={
+              <Button 
+                onClick={run} 
+                variant="default" 
+                disabled={!selected || !!progress}
+                className="gap-2"
+              >
+                <Play className="h-4 w-4" />
+                Execute Chain
+              </Button>
+            }
+          >
+            {!selected ? (
               <Card>
                 <CardContent className="p-6 text-center">
                   <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">No steps configured yet.</p>
-                  <p className="text-xs text-muted-foreground mt-1">Click "Add Step" to start building your workflow.</p>
+                  <p className="text-sm text-muted-foreground">Select a chain from above to get started</p>
                 </CardContent>
               </Card>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-medium">Input Files</Label>
+                  <p className="text-sm text-muted-foreground mb-3">Upload files to process through the selected chain</p>
+                  <Dropzone 
+                    onFiles={(fs) => setFiles((fs as any) as File[])} 
+                    label="Drop files here or click to select" 
+                    supportedText="Supported: Images and PDF files"
+                    accept="image/*,.pdf"
+                  />
+                </div>
+                {files && files.length > 0 && (
+                  <SelectedFiles files={files} onRemove={(idx) => setFiles((prev) => prev.filter((_, i) => i !== idx))} />
+                )}
+              </div>
             )}
-            {steps.map((step, idx) => (
-              <ChainStepEditor key={idx} index={idx} step={step} onChange={(ns) => setSteps((prev) => prev.map((s, i) => (i === idx ? ns : s)))} onRemove={() => setSteps((prev) => prev.filter((_, i) => i !== idx))} />
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      {progress && (
-        <Section title="Execution Progress">
-          <ProgressBar current={progress.currentStep} total={progress.stepCount} status={progress.status} />
-        </Section>
+          </Section>
+        </>
       )}
 
-      <Section 
-        title="Execute Chain" 
-        description="Select a saved chain and upload files to process"
-        actions={
-          <Button 
-            onClick={run} 
-            variant="default" 
-            disabled={!selected || !!progress}
-            className="gap-2"
-          >
-            <Play className="h-4 w-4" />
-            Execute Chain
-          </Button>
-        }
-      >
-        <div className="grid gap-6 lg:grid-cols-3">
+      {/* No chains state */}
+      {chains.length === 0 && !showCreation && (
+        <Section title="Tool Chains">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Chain Selection</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="chain-select">Choose Chain</Label>
-                <Select value={selected} onValueChange={setSelected}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a chain..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {chains.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <p>Upload files if your selected chain requires input files.</p>
-              </div>
+            <CardContent className="p-8 text-center">
+              <Link className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Tool Chains Created Yet</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                Create automated workflows by chaining multiple image processing tools together. 
+                Perfect for repetitive tasks like converting PDFs to images then compressing them.
+              </p>
+              <Button onClick={() => setShowCreation(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create Your First Chain
+              </Button>
             </CardContent>
           </Card>
-          <div className="lg:col-span-2 space-y-4">
-            <div>
-              <Label className="text-base font-medium">Input Files</Label>
-              <p className="text-sm text-muted-foreground mb-3">Select files to process through the chain</p>
-              <Dropzone 
-                onFiles={(fs) => setFiles((fs as any) as File[])} 
-                label="Drop files here or click to select" 
-                supportedText="Supported: Images and PDF files"
-                accept="image/*,.pdf"
-              />
-            </div>
-            {files && files.length > 0 && (
-              <div>
-                <SelectedFiles files={files} onRemove={(idx) => setFiles((prev) => prev.filter((_, i) => i !== idx))} />
-              </div>
-            )}
-          </div>
-        </div>
-      </Section>
-
-      {result && (
-        <Section title="Result">
-          <pre className="text-xs whitespace-pre-wrap bg-gray-50 p-3 rounded border overflow-auto max-h-96">{JSON.stringify(result, null, 2)}</pre>
         </Section>
       )}
 
-      <Section
-        title="Chain History"
-        description={`${executions.length} executions`}
-        actions={
-          <Button size="sm" variant="outline" onClick={async () => {
-            try {
-              const j = await (await fetch('/api/chain-executions')).json();
-              setExecutions(j);
-            } catch {}
-          }}>Refresh</Button>
-        }
-      >
-        <div className="space-y-3">
-          {executions.length === 0 && (
-            <Card><CardContent className="p-6 text-sm text-muted-foreground">No executions yet.</CardContent></Card>
-          )}
-          {executions.map((e: any) => (
-            <Card key={e.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{e.chain_name || e.chain_id}</CardTitle>
-                  <div className="text-sm text-muted-foreground">{new Date(e.created_at).toLocaleString()} • {e.status}</div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={async () => {
-                    try {
-                      const d = await (await fetch(`/api/chain-executions/${e.id}`)).json();
-                      setExecDetails((p) => ({ ...p, [e.id]: d }));
-                    } catch {}
-                  }}>View Details</Button>
-                </div>
-                {execDetails[e.id] && (
-                  <pre className="mt-3 text-xs whitespace-pre-wrap bg-gray-50 p-3 rounded border overflow-auto max-h-80">{JSON.stringify(execDetails[e.id], null, 2)}</pre>
-                )}
+      {/* Results */}
+      {result && (
+        <Section 
+          title="Chain Execution Results" 
+          description={result.results ? `${result.results.length} steps completed` : "Execution results"}
+        >
+          {result.results ? (
+            <ChainResults results={result.results} />
+          ) : result.error ? (
+            <Card className="border-red-200 dark:border-red-800">
+              <CardContent className="p-4">
+                <div className="text-red-600 dark:text-red-400">{result.error}</div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      </Section>
+          ) : (
+            <div className="text-sm text-muted-foreground">No results to display</div>
+          )}
+        </Section>
+      )}
     </div>
   );
 };

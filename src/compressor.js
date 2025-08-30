@@ -9,8 +9,10 @@ import { fileURLToPath } from 'url';
 // Images to be compressed should be placed in `input/compress`.
 // Compressed versions will be written to `output/compress`.
 // -----------------------------------------------------------------------------
-const srcDir = path.resolve(process.cwd(), 'input', 'compress');
-const outDir = path.resolve(process.cwd(), 'output', 'compress');
+// Use writable base directory for Electron packaged apps
+const BASE_DIR = process.env.IMAGE_UTILS_DATA_DIR || process.cwd();
+const srcDir = path.resolve(BASE_DIR, 'input', 'compress');
+const outDir = path.resolve(BASE_DIR, 'output', 'compress');
 
 // -----------------------------------------------------------------------------
 // CLI argument parsing (only when run directly)
