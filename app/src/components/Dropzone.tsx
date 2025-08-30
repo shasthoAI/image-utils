@@ -6,19 +6,37 @@ type Props = {
   label?: string;
   className?: string;
   supportedText?: string;
+  scope?: string; // optional scope key for global shortcuts
 };
 
-export const Dropzone: React.FC<Props> = ({ onFiles, accept, label = "Drop files here or click to select", className = "", supportedText }) => {
+export const Dropzone: React.FC<Props> = ({ onFiles, accept, label = "Drop files here or click to select", className = "", supportedText, scope }) => {
   const [drag, setDrag] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDrag(false);
     const fs = Array.from(e.dataTransfer.files || []);
     if (fs.length) onFiles(fs);
   };
+
+  React.useEffect(() => {
+    const onOpen = (e: Event) => {
+      const ce = e as CustomEvent<{ scope?: string }>;
+      if (ce.detail && scope && ce.detail.scope && ce.detail.scope !== scope) return;
+      const el = wrapperRef.current as HTMLElement | null;
+      // Only trigger if visible in the current layout
+      const isVisible = !!el && el.offsetParent !== null;
+      if (isVisible) {
+        inputRef.current?.click();
+      }
+    };
+    window.addEventListener('ui:open-file-picker', onOpen as EventListener);
+    return () => window.removeEventListener('ui:open-file-picker', onOpen as EventListener);
+  }, [scope]);
   return (
     <div
+      ref={wrapperRef}
       onDragOver={(e) => {
         e.preventDefault();
         setDrag(true);
@@ -45,4 +63,3 @@ export const Dropzone: React.FC<Props> = ({ onFiles, accept, label = "Drop files
     </div>
   );
 };
-

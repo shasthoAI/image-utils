@@ -40,6 +40,28 @@ export const SplitView: React.FC = () => {
     }
   };
 
+  React.useEffect(() => {
+    const onExecute = (e: Event) => {
+      const ce = e as CustomEvent<{ scope?: string }>;
+      if (ce.detail?.scope && ce.detail.scope !== 'split') return;
+      if (!loading && files && files.length) {
+        submit();
+      }
+    };
+    const onNew = (e: Event) => {
+      const ce = e as CustomEvent<{ scope?: string }>;
+      if (ce.detail?.scope && ce.detail.scope !== 'split') return;
+      setFiles([]);
+      setResults([]);
+    };
+    window.addEventListener('ui:execute', onExecute as EventListener);
+    window.addEventListener('ui:new', onNew as EventListener);
+    return () => {
+      window.removeEventListener('ui:execute', onExecute as EventListener);
+      window.removeEventListener('ui:new', onNew as EventListener);
+    };
+  }, [files, loading]);
+
   return (
     <div className="space-y-6">
       <Section
@@ -71,7 +93,7 @@ export const SplitView: React.FC = () => {
             <div>
               <Label className="text-base font-medium">Select Images</Label>
               <p className="text-sm text-muted-foreground mb-3">Choose images to split horizontally (JPEG, PNG, WebP supported)</p>
-              <Dropzone accept="image/*" onFiles={(fs) => setFiles((fs as any) as File[])} label="Drop images here or click to select" supportedText="Supported: JPEG, PNG, WebP images only" />
+              <Dropzone scope="split" accept="image/*" onFiles={(fs) => setFiles((fs as any) as File[])} label="Drop images here or click to select" supportedText="Supported: JPEG, PNG, WebP images only" />
             </div>
             {files && files.length > 0 && (
               <div>
@@ -152,4 +174,3 @@ export const SplitView: React.FC = () => {
     </div>
   );
 };
-

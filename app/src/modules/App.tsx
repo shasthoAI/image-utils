@@ -11,6 +11,7 @@ import {
   CommandList,
 } from "../components/ui/command";
 import { HeaderBar } from "../components/HeaderBar";
+import { ShortcutsDialog } from "../components/ShortcutsDialog";
 import { TabIcon, type Tab } from "../components/TabIcon";
 const CompressView = lazy(() => import('./CompressView').then(m => ({ default: m.CompressView })));
 const SplitView = lazy(() => import('./SplitView').then(m => ({ default: m.SplitView })));
@@ -27,17 +28,9 @@ function keyFor(t: Tab) {
 
 const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>('compress');
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const k = e.key.toLowerCase();
-      if ((e.metaKey || e.ctrlKey) && k === 'k') { e.preventDefault(); setPaletteOpen(true); return; }
-      if (k >= '1' && k <= '5') { const i = Number(k) - 1; setTab((['compress', 'split', 'pdf', 'chains', 'jobs'] as Tab[])[i]); return; }
-      if (k === 'j') { setTab('jobs'); return; }
-    };
-    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
-  }, []);
   useEffect(() => { document.title = `Image Utils — ${labelFor(tab)}`; }, [tab]);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [query, setQuery] = useState('');
   // Keep visited tabs mounted to preserve their state
   const [mountedTabs, setMountedTabs] = useState<Set<Tab>>(() => new Set(['compress']));
@@ -51,10 +44,63 @@ const App: React.FC = () => {
   }, [tab]);
   const commands = useMemo(() => {
     const switchTo = (t: Tab) => ({ id: `tab-${t}`, label: `Switch: ${labelFor(t)}`, hint: keyFor(t), run: () => setTab(t) });
-    return [switchTo('compress'), switchTo('split'), switchTo('pdf'), switchTo('chains'), switchTo('jobs')];
+    return [
+      switchTo('compress'),
+      switchTo('split'),
+      switchTo('pdf'),
+      switchTo('chains'),
+      switchTo('jobs'),
+      { id: 'show-shortcuts', label: 'Show Keyboard Shortcuts', hint: '?', run: () => setShortcutsOpen(true) },
+    ];
   }, []);
   const filtered = useMemo(() => commands.filter(c => c.label.toLowerCase().includes(query.toLowerCase())), [commands, query]);
   const isElectron = typeof window !== 'undefined' && (window as any).appWindow;
+
+  useEffect(() => {
+    const isTextInput = (el: Element | null) => {
+      if (!el || !(el instanceof HTMLElement)) return false;
+      const tag = el.tagName.toLowerCase();
+      const editable = (el as HTMLElement).isContentEditable;
+      return editable || tag === 'input' || tag === 'textarea' || tag === 'select';
+    };
+    const onKey = (e: KeyboardEvent) => {
+      const k = e.key;
+      const lower = k.toLowerCase();
+      const target = e.target as Element | null;
+      // existing nav
+      if ((e.metaKey || e.ctrlKey) && lower === 'k') { e.preventDefault(); setPaletteOpen(true); return; }
+      if (lower >= '1' && lower <= '5') { const i = Number(lower) - 1; setTab((['compress', 'split', 'pdf', 'chains', 'jobs'] as Tab[])[i]); return; }
+      if (lower === 'j') { setTab('jobs'); return; }
+
+      // show shortcuts
+      if (lower === '?') { e.preventDefault(); setShortcutsOpen(true); return; }
+      if ((e.metaKey || e.ctrlKey) && lower === '/') { e.preventDefault(); setShortcutsOpen(true); return; }
+
+      // actions that should not trigger while typing
+      if (isTextInput(target)) return;
+
+      // open file selector on Space
+      if (k === ' ' || lower === ' ') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('ui:open-file-picker', { detail: { scope: tab } }));
+        return;
+      }
+      // run on Enter
+      if (lower === 'enter') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('ui:execute', { detail: { scope: tab } }));
+        return;
+      }
+      // new/clear on Cmd/Ctrl+N
+      if ((e.metaKey || e.ctrlKey) && lower === 'n') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('ui:new', { detail: { scope: tab } }));
+        return;
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [tab]);
   return (
     <div className={`h-screen ${isElectron ? 'p-0' : 'max-w-7xl mx-auto p-4'}`}>
       <div className="bg-card border border-border rounded-xl shadow-xl h-full grid grid-cols-[240px_1fr] overflow-hidden">
@@ -91,6 +137,16 @@ const App: React.FC = () => {
             >
               <span className="text-sm">Command Palette</span>
               <span className="inline-flex items-center gap-1 text-xs"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
+            </Button>
+            <div className="mt-2" />
+            <Button 
+              onClick={() => setShortcutsOpen(true)} 
+              className="w-full justify-between h-9" 
+              variant="outline"
+              size="sm"
+            >
+              <span className="text-sm">Keyboard Shortcuts</span>
+              <Kbd>?</Kbd>
             </Button>
           </div>
         </aside>
@@ -160,6 +216,8 @@ const App: React.FC = () => {
           </Command>
         </DialogContent>
       </Dialog>
+
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
 }

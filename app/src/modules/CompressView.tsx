@@ -72,6 +72,29 @@ export const CompressView: React.FC = () => {
     }
   };
 
+  React.useEffect(() => {
+    const onExecute = (e: Event) => {
+      const ce = e as CustomEvent<{ scope?: string }>;
+      if (ce.detail?.scope && ce.detail.scope !== 'compress') return;
+      // Only run if we have files and not already loading
+      if (!loading && files && files.length) {
+        submit();
+      }
+    };
+    const onNew = (e: Event) => {
+      const ce = e as CustomEvent<{ scope?: string }>;
+      if (ce.detail?.scope && ce.detail.scope !== 'compress') return;
+      setFiles([]);
+      setResults([]);
+    };
+    window.addEventListener('ui:execute', onExecute as EventListener);
+    window.addEventListener('ui:new', onNew as EventListener);
+    return () => {
+      window.removeEventListener('ui:execute', onExecute as EventListener);
+      window.removeEventListener('ui:new', onNew as EventListener);
+    };
+  }, [files, loading]);
+
   return (
     <div className="space-y-4">
       <Section
@@ -120,7 +143,7 @@ export const CompressView: React.FC = () => {
             <div>
               <Label className="text-base font-medium">Select Images</Label>
               <p className="text-sm text-muted-foreground mb-3">Choose images to compress (JPEG, PNG, WebP supported)</p>
-              <Dropzone accept="image/*" onFiles={(fs) => setFiles((fs as any) as File[])} label="Drop images here or click to select" supportedText="Supported: JPEG, PNG, WebP images only" />
+              <Dropzone scope="compress" accept="image/*" onFiles={(fs) => setFiles((fs as any) as File[])} label="Drop images here or click to select" supportedText="Supported: JPEG, PNG, WebP images only" />
             </div>
             {files && files.length > 0 && (
               <div>
@@ -225,4 +248,3 @@ export const CompressView: React.FC = () => {
     </div>
   );
 };
-

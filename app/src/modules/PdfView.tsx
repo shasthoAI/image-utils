@@ -40,6 +40,28 @@ export const PdfView: React.FC = () => {
     }
   };
 
+  React.useEffect(() => {
+    const onExecute = (e: Event) => {
+      const ce = e as CustomEvent<{ scope?: string }>;
+      if (ce.detail?.scope && ce.detail.scope !== 'pdf') return;
+      if (!loading && files && files.length) {
+        submit();
+      }
+    };
+    const onNew = (e: Event) => {
+      const ce = e as CustomEvent<{ scope?: string }>;
+      if (ce.detail?.scope && ce.detail.scope !== 'pdf') return;
+      setFiles([]);
+      setResults([]);
+    };
+    window.addEventListener('ui:execute', onExecute as EventListener);
+    window.addEventListener('ui:new', onNew as EventListener);
+    return () => {
+      window.removeEventListener('ui:execute', onExecute as EventListener);
+      window.removeEventListener('ui:new', onNew as EventListener);
+    };
+  }, [files, loading]);
+
   return (
     <div className="space-y-6">
       <Section 
@@ -71,7 +93,7 @@ export const PdfView: React.FC = () => {
             <div>
               <Label className="text-base font-medium">Select PDF Files</Label>
               <p className="text-sm text-muted-foreground mb-3">Choose PDF files to convert to images</p>
-              <Dropzone accept="application/pdf" onFiles={(fs) => setFiles((fs as any) as File[])} label="Drop PDFs here or click to select" supportedText="Supported: PDF files only" />
+              <Dropzone scope="pdf" accept="application/pdf" onFiles={(fs) => setFiles((fs as any) as File[])} label="Drop PDFs here or click to select" supportedText="Supported: PDF files only" />
             </div>
             {files && files.length > 0 && (
               <div>
@@ -149,4 +171,3 @@ export const PdfView: React.FC = () => {
     </div>
   );
 };
-
