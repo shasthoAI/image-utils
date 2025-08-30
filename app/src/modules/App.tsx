@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { Button } from "../components/ui/button";
 import { Kbd } from "../components/ui/kbd";
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
@@ -12,11 +12,11 @@ import {
 } from "../components/ui/command";
 import { HeaderBar } from "../components/HeaderBar";
 import { TabIcon, type Tab } from "../components/TabIcon";
-import { CompressView } from "./CompressView";
-import { SplitView } from "./SplitView";
-import { PdfView } from "./PdfView";
-import { ChainsView } from "./ChainsView";
-import { JobsView } from "./JobsView";
+const CompressView = lazy(() => import('./CompressView').then(m => ({ default: m.CompressView })));
+const SplitView = lazy(() => import('./SplitView').then(m => ({ default: m.SplitView })));
+const PdfView = lazy(() => import('./PdfView').then(m => ({ default: m.PdfView })));
+const ChainsView = lazy(() => import('./ChainsView').then(m => ({ default: m.ChainsView })));
+const JobsView = lazy(() => import('./JobsView').then(m => ({ default: m.JobsView })));
 
 function labelFor(t: Tab) {
   return t === 'compress' ? 'Compress Images' : t === 'split' ? 'Split Images' : t === 'pdf' ? 'PDF to Images' : t === 'chains' ? 'Tool Chains' : 'Job History';
@@ -39,6 +39,16 @@ const App: React.FC = () => {
   useEffect(() => { document.title = `Image Utils — ${labelFor(tab)}`; }, [tab]);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [query, setQuery] = useState('');
+  // Keep visited tabs mounted to preserve their state
+  const [mountedTabs, setMountedTabs] = useState<Set<Tab>>(() => new Set(['compress']));
+  useEffect(() => {
+    setMountedTabs((prev) => {
+      if (prev.has(tab)) return prev;
+      const next = new Set(prev);
+      next.add(tab);
+      return next;
+    });
+  }, [tab]);
   const commands = useMemo(() => {
     const switchTo = (t: Tab) => ({ id: `tab-${t}`, label: `Switch: ${labelFor(t)}`, hint: keyFor(t), run: () => setTab(t) });
     return [switchTo('compress'), switchTo('split'), switchTo('pdf'), switchTo('chains'), switchTo('jobs')];
@@ -86,23 +96,35 @@ const App: React.FC = () => {
         </aside>
         <main className="p-6 space-y-6 overflow-y-auto">
           <HeaderBar title={labelFor(tab)} onOpenPalette={() => setPaletteOpen(true)} />
-          <div className="space-y-6">
-            <div className={tab === 'compress' ? '' : 'hidden'}>
-              <CompressView />
+          <Suspense fallback={<div className="text-sm text-muted-foreground">Loading…</div>}>
+            <div className="space-y-6">
+              {mountedTabs.has('compress') && (
+                <div key="compress" className={tab === 'compress' ? '' : 'hidden'}>
+                  <CompressView />
+                </div>
+              )}
+              {mountedTabs.has('split') && (
+                <div key="split" className={tab === 'split' ? '' : 'hidden'}>
+                  <SplitView />
+                </div>
+              )}
+              {mountedTabs.has('pdf') && (
+                <div key="pdf" className={tab === 'pdf' ? '' : 'hidden'}>
+                  <PdfView />
+                </div>
+              )}
+              {mountedTabs.has('chains') && (
+                <div key="chains" className={tab === 'chains' ? '' : 'hidden'}>
+                  <ChainsView />
+                </div>
+              )}
+              {mountedTabs.has('jobs') && (
+                <div key="jobs" className={tab === 'jobs' ? '' : 'hidden'}>
+                  <JobsView />
+                </div>
+              )}
             </div>
-            <div className={tab === 'split' ? '' : 'hidden'}>
-              <SplitView />
-            </div>
-            <div className={tab === 'pdf' ? '' : 'hidden'}>
-              <PdfView />
-            </div>
-            <div className={tab === 'chains' ? '' : 'hidden'}>
-              <ChainsView />
-            </div>
-            <div className={tab === 'jobs' ? '' : 'hidden'}>
-              <JobsView />
-            </div>
-          </div>
+          </Suspense>
         </main>
       </div>
 
