@@ -6,6 +6,7 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { fileURLToPath } from 'url';
 import { db } from './database.js';
+import { getDatabase } from './database/index.js';
 import { compressImageFile, setCompressionConfig } from './compressor.js';
 import { splitImageHorizontally } from './splitter.js';
 import { convertPdfToImages } from './pdf_splitter.js';
